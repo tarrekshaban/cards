@@ -1,7 +1,11 @@
+"""FastAPI dependencies for auth and database access."""
+
 from typing import Annotated
+from functools import lru_cache
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import create_client, Client
+from gotrue.types import User
 
 from .config import Settings, get_settings
 
@@ -9,35 +13,40 @@ from .config import Settings, get_settings
 security = HTTPBearer()
 
 
+@lru_cache
+def _get_supabase_client(url: str, key: str) -> Client:
+    """Create and cache a Supabase client instance."""
+    return create_client(url, key)
+
+
 def get_supabase_client(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Client:
-    """Get Supabase client instance."""
-    return create_client(settings.supabase_url, settings.supabase_anon_key)
+    """Get cached Supabase client instance (anon key)."""
+    return _get_supabase_client(settings.supabase_url, settings.supabase_anon_key)
 
 
 def get_supabase_admin_client(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> Client:
-    """Get Supabase admin client with service key for privileged operations."""
-    return create_client(settings.supabase_url, settings.supabase_service_key)
+    """Get cached Supabase admin client (service key for privileged operations)."""
+    return _get_supabase_client(settings.supabase_url, settings.supabase_service_key)
 
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> dict:
+) -> User:
     """
     Validate JWT token and return current user.
     
     Extracts the Bearer token from Authorization header,
-    validates it with Supabase, and returns the user object.
+    validates it with Supabase, and returns the User object.
     """
     token = credentials.credentials
     
     try:
-        # Create a client and get the user from the token
-        supabase = create_client(settings.supabase_url, settings.supabase_anon_key)
+        supabase = _get_supabase_client(settings.supabase_url, settings.supabase_anon_key)
         user_response = supabase.auth.get_user(token)
         
         if user_response.user is None:
@@ -49,6 +58,8 @@ async def get_current_user(
         
         return user_response.user
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

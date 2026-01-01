@@ -1,58 +1,50 @@
+"""Authentication endpoints."""
+
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
 from supabase import Client
+from gotrue.types import User
 
-from ..dependencies import get_supabase_client, get_current_user
+from ..config import Settings, get_settings
+from ..dependencies import get_supabase_client, get_supabase_admin_client, get_current_user
+from ..schemas import (
+    SignUpRequest,
+    LoginRequest,
+    RefreshRequest,
+    AuthResponse,
+    UserInfo,
+    UserResponse,
+    MessageResponse,
+)
 
 router = APIRouter()
-
-
-# Request/Response Models
-class SignUpRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
-class AuthResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-    user: dict
-
-
-class UserResponse(BaseModel):
-    id: str
-    email: str
-    created_at: str
-    updated_at: str | None = None
-    user_metadata: dict = {}
-
-
-class MessageResponse(BaseModel):
-    message: str
 
 
 @router.post("/signup", response_model=AuthResponse)
 async def signup(
     request: SignUpRequest,
     supabase: Annotated[Client, Depends(get_supabase_client)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ):
     """
     Create a new user account with email and password.
     
     Returns access and refresh tokens on successful signup.
     """
+    # Check email whitelist
+    if not settings.is_email_allowed(request.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This email is not authorized to create an account",
+        )
+    
+    # Validate password
+    if len(request.password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters",
+        )
+    
     try:
         response = supabase.auth.sign_up({
             "email": request.email,
@@ -72,28 +64,32 @@ async def signup(
                 refresh_token="",
                 token_type="bearer",
                 expires_in=0,
-                user={
-                    "id": response.user.id,
-                    "email": response.user.email,
-                    "created_at": str(response.user.created_at),
-                    "email_confirmed": False,
-                },
+                user=UserInfo(
+                    id=response.user.id,
+                    email=response.user.email or "",
+                    created_at=str(response.user.created_at),
+                    email_confirmed=False,
+                ),
             )
         
         return AuthResponse(
             access_token=response.session.access_token,
             refresh_token=response.session.refresh_token,
             token_type="bearer",
-            expires_in=response.session.expires_in,
-            user={
-                "id": response.user.id,
-                "email": response.user.email,
-                "created_at": str(response.user.created_at),
-            },
+            expires_in=response.session.expires_in or 3600,
+            user=UserInfo(
+                id=response.user.id,
+                email=response.user.email or "",
+                created_at=str(response.user.created_at),
+                email_confirmed=True,
+            ),
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
-        if "already registered" in str(e).lower():
+        error_msg = str(e).lower()
+        if "already registered" in error_msg or "already been registered" in error_msg:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="User with this email already exists",
@@ -130,12 +126,13 @@ async def login(
             access_token=response.session.access_token,
             refresh_token=response.session.refresh_token,
             token_type="bearer",
-            expires_in=response.session.expires_in,
-            user={
-                "id": response.user.id,
-                "email": response.user.email,
-                "created_at": str(response.user.created_at),
-            },
+            expires_in=response.session.expires_in or 3600,
+            user=UserInfo(
+                id=response.user.id,
+                email=response.user.email or "",
+                created_at=str(response.user.created_at),
+                email_confirmed=True,
+            ),
         )
         
     except HTTPException:
@@ -149,22 +146,23 @@ async def login(
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
-    supabase: Annotated[Client, Depends(get_supabase_client)],
-    _current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    admin_client: Annotated[Client, Depends(get_supabase_admin_client)],
 ):
     """
     Sign out the current user session.
     
     Requires a valid access token in the Authorization header.
+    Invalidates all sessions for the user on the server side.
     """
     try:
-        supabase.auth.sign_out()
+        # Use admin client to sign out user by ID (invalidates all sessions)
+        admin_client.auth.admin.sign_out(current_user.id)
         return MessageResponse(message="Successfully logged out")
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to logout",
-        ) from e
+    except Exception:
+        # Even if server-side logout fails, client should clear tokens
+        # Return success to avoid confusion
+        return MessageResponse(message="Successfully logged out")
 
 
 @router.post("/refresh", response_model=AuthResponse)
@@ -190,12 +188,13 @@ async def refresh_token(
             access_token=response.session.access_token,
             refresh_token=response.session.refresh_token,
             token_type="bearer",
-            expires_in=response.session.expires_in,
-            user={
-                "id": response.user.id,
-                "email": response.user.email,
-                "created_at": str(response.user.created_at),
-            },
+            expires_in=response.session.expires_in or 3600,
+            user=UserInfo(
+                id=response.user.id,
+                email=response.user.email or "",
+                created_at=str(response.user.created_at),
+                email_confirmed=True,
+            ),
         )
         
     except HTTPException:
@@ -209,7 +208,7 @@ async def refresh_token(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Get the current authenticated user's information.
@@ -218,7 +217,7 @@ async def get_me(
     """
     return UserResponse(
         id=current_user.id,
-        email=current_user.email,
+        email=current_user.email or "",
         created_at=str(current_user.created_at),
         updated_at=str(current_user.updated_at) if current_user.updated_at else None,
         user_metadata=current_user.user_metadata or {},

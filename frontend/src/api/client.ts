@@ -10,16 +10,19 @@ const ACCESS_TOKEN_KEY = 'access_token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
 
 // Types
+export interface UserInfo {
+  id: string
+  email: string
+  created_at: string
+  email_confirmed: boolean
+}
+
 export interface AuthTokens {
   access_token: string
   refresh_token: string
   token_type: string
   expires_in: number
-  user: {
-    id: string
-    email: string
-    created_at: string
-  }
+  user: UserInfo
 }
 
 export interface ApiError {

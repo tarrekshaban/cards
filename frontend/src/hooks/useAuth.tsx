@@ -82,7 +82,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Signup
   const signup = useCallback(async (email: string, password: string) => {
     const response = await authApi.signup(email, password)
-    if (response.access_token) {
+    if (response.access_token && response.user.email_confirmed) {
       setUser({
         id: response.user.id,
         email: response.user.email,
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         updated_at: null,
         user_metadata: {},
       })
-    } else {
+    } else if (!response.user.email_confirmed) {
       // Email confirmation required
       throw new Error('Please check your email to confirm your account')
     }
