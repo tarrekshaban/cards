@@ -1,5 +1,56 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles will be added here */
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-text font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: theme("colors.primary.subtle");
+    color: theme("colors.text.DEFAULT");
+  }
+
+  a {
+    @apply text-primary hover:text-primary-hover;
+  }
+
+  button {
+    @apply font-medium;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface-raised border border-border-subtle rounded-subtle shadow-card;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 bg-surface-muted border border-border-subtle rounded-subtle text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-subtle bg-primary text-surface hover:bg-primary-hover transition-colors font-medium text-sm;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-subtle border border-border text-text hover:bg-surface-muted transition-colors text-sm;
+  }
+}
+
+@layer utilities {
+  .page-shell {
+    @apply min-h-screen bg-surface text-text px-4 py-8 sm:px-6 lg:px-8;
+  }
+  .panel {
+    @apply card p-5 sm:p-6;
+  }
+}

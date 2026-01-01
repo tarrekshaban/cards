@@ -9,44 +9,47 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <p className="text-text-muted">Loading...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div className="page-shell">
+      <header className="bg-surface-muted border border-border rounded-subtle mb-6">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-text-muted">Dashboard</p>
+            <h1 className="text-2xl font-bold">Overview</h1>
+          </div>
           <button
             onClick={handleLogout}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className="btn-secondary w-full sm:w-auto"
           >
             Logout
           </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+      <main className="max-w-5xl mx-auto space-y-6">
+        <div className="panel">
+          <h2 className="text-lg font-semibold mb-3">
             Welcome back!
           </h2>
-          <p className="text-gray-600">
+          <p className="text-text-muted">
             You are logged in as <span className="font-medium">{user?.email}</span>
           </p>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-text-muted mt-2">
             User ID: {user?.id}
           </p>
         </div>
 
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="panel">
+          <h2 className="text-lg font-semibold mb-3">
             Your App Content
           </h2>
-          <p className="text-gray-600">
+          <p className="text-text-muted">
             Start building your application here. This is a protected route that requires authentication.
           </p>
         </div>

@@ -5,36 +5,27 @@ export default function HomePage() {
   const { user, isLoading } = useAuth()
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+    <div className="page-shell flex flex-col items-center">
+      <div className="w-full max-w-xl panel text-center space-y-4">
+        <h1 className="text-3xl sm:text-4xl font-bold">
           Welcome to Cards
         </h1>
-        <p className="text-lg text-gray-600 mb-8">
+        <p className="text-base sm:text-lg text-text-muted">
           Your application is ready to go.
         </p>
-        
+
         {isLoading ? (
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-text-muted">Loading...</p>
         ) : user ? (
-          <Link
-            to="/dashboard"
-            className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <Link to="/dashboard" className="btn-primary w-full sm:w-auto">
             Go to Dashboard
           </Link>
         ) : (
-          <div className="space-x-4">
-            <Link
-              to="/login"
-              className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/login" className="btn-primary w-full sm:w-auto">
               Login
             </Link>
-            <Link
-              to="/signup"
-              className="inline-block px-6 py-3 border border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors"
-            >
+            <Link to="/signup" className="btn-secondary w-full sm:w-auto">
               Sign Up
             </Link>
           </div>
