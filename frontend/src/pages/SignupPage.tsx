@@ -40,29 +40,25 @@ export default function SignupPage() {
 
   return (
     <div className="page-shell flex items-center justify-center">
-      <div className="w-full max-w-md panel space-y-8">
-        <div className="space-y-2">
-          <p className="text-sm uppercase tracking-[0.18em] text-text-muted">Create account</p>
-          <h2 className="text-3xl font-bold">Join Cards</h2>
+      <div className="w-full max-w-md panel space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-xl font-normal">Create account</h2>
           <p className="text-sm text-text-muted">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:text-primary-hover">
-              Sign in
-            </Link>
+            Join the platform by filling the details
           </p>
         </div>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-3 rounded-subtle">
+            <div className="border border-red-900/50 bg-red-950/20 text-red-400 px-3 py-2 text-xs">
               {error}
             </div>
           )}
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-text-muted">
-                Email address
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-xs text-text-muted">
+                Email
               </label>
               <input
                 id="email"
@@ -73,11 +69,12 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
+                placeholder="Enter email"
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-text-muted">
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="block text-xs text-text-muted">
                 Password
               </label>
               <input
@@ -89,11 +86,12 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
+                placeholder="Enter password"
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-text-muted">
+            <div className="space-y-1.5">
+              <label htmlFor="confirmPassword" className="block text-xs text-text-muted">
                 Confirm password
               </label>
               <input
@@ -105,23 +103,36 @@ export default function SignupPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input"
+                placeholder="Confirm password"
               />
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Creating account...' : 'Create account'}
-          </button>
+          <div className="flex items-center gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary"
+            >
+              {isSubmitting ? 'Creating...' : 'Submit'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
 
-        <div className="text-center text-text-muted">
-          <Link to="/" className="text-sm hover:text-text">
-            ← Back to home
-          </Link>
+        <div className="pt-4 border-t border-border">
+          <p className="text-xs text-text-muted">
+            Already have an account?{' '}
+            <Link to="/login" className="text-text hover:underline underline-offset-4">
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>

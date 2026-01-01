@@ -5,31 +5,34 @@ export default function HomePage() {
   const { user, isLoading } = useAuth()
 
   return (
-    <div className="page-shell flex flex-col items-center">
-      <div className="w-full max-w-xl panel text-center space-y-4">
-        <h1 className="text-3xl sm:text-4xl font-bold">
-          Welcome to Cards
-        </h1>
-        <p className="text-base sm:text-lg text-text-muted">
-          Your application is ready to go.
-        </p>
+    <div className="page-shell flex flex-col items-center justify-center">
+      <div className="w-full max-w-xl panel space-y-6">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-text-muted">Introduction</p>
+          <h1 className="text-2xl font-normal">Welcome to Cards</h1>
+          <p className="text-sm text-text-muted">
+            A high-density, minimal boilerplate for full-stack development.
+          </p>
+        </div>
 
-        {isLoading ? (
-          <p className="text-text-muted">Loading...</p>
-        ) : user ? (
-          <Link to="/dashboard" className="btn-primary w-full sm:w-auto">
-            Go to Dashboard
-          </Link>
-        ) : (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/login" className="btn-primary w-full sm:w-auto">
-              Login
+        <div className="pt-6 border-t border-border flex items-center gap-3">
+          {isLoading ? (
+            <p className="text-xs text-text-muted">Authenticating...</p>
+          ) : user ? (
+            <Link to="/dashboard" className="btn-primary">
+              Enter Dashboard
             </Link>
-            <Link to="/signup" className="btn-secondary w-full sm:w-auto">
-              Sign Up
-            </Link>
-          </div>
-        )}
+          ) : (
+            <>
+              <Link to="/login" className="btn-primary">
+                Sign in
+              </Link>
+              <Link to="/signup" className="btn-secondary">
+                Register
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

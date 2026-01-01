@@ -10,47 +10,47 @@
 
 @layer base {
   body {
-    @apply bg-surface text-text font-sans antialiased;
+    @apply bg-surface text-text font-mono antialiased;
     min-height: 100vh;
   }
 
   ::selection {
-    background: theme("colors.primary.subtle");
-    color: theme("colors.text.DEFAULT");
+    background: theme("colors.primary.DEFAULT");
+    color: theme("colors.surface.DEFAULT");
   }
 
   a {
-    @apply text-primary hover:text-primary-hover;
+    @apply text-text-muted hover:text-text transition-colors;
   }
 
   button {
-    @apply font-medium;
+    @apply font-normal;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-surface-raised border border-border-subtle rounded-subtle shadow-card;
+    @apply bg-surface-raised border border-border rounded-subtle;
   }
 
   .input {
-    @apply w-full px-3 py-2 bg-surface-muted border border-border-subtle rounded-subtle text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply w-full px-3 py-1.5 bg-surface-muted border border-border rounded-subtle text-text placeholder:text-text-faint focus:outline-none focus:border-text-muted transition-colors text-sm;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-subtle bg-primary text-surface hover:bg-primary-hover transition-colors font-medium text-sm;
+    @apply inline-flex items-center justify-center px-4 py-1.5 rounded-subtle bg-primary text-surface hover:bg-primary-hover transition-colors font-medium text-sm;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-subtle border border-border text-text hover:bg-surface-muted transition-colors text-sm;
+    @apply inline-flex items-center justify-center px-4 py-1.5 rounded-subtle border border-border text-text hover:bg-surface-muted transition-colors text-sm;
   }
 }
 
 @layer utilities {
   .page-shell {
-    @apply min-h-screen bg-surface text-text px-4 py-8 sm:px-6 lg:px-8;
+    @apply min-h-screen bg-surface text-text p-4 sm:p-6 lg:p-8;
   }
   .panel {
-    @apply card p-5 sm:p-6;
+    @apply card p-4;
   }
 }
