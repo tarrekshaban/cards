@@ -7,6 +7,7 @@ from supabase import Client
 from gotrue.types import User
 
 from ..dependencies import get_supabase_admin_client, require_admin
+from ..services.cache import catalog_cache
 from ..schemas import (
     BenefitSchedule,
     Card,
@@ -64,6 +65,9 @@ async def create_card(
         "image_url": request.image_url,
     }).execute()
     
+    # Invalidate cache
+    catalog_cache.invalidate("cards:")
+    
     return _parse_card(result.data[0])
 
 
@@ -93,6 +97,10 @@ async def update_card(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
     
     result = supabase.table("cards").update(update_data).eq("id", card_id).execute()
+    
+    # Invalidate cache
+    catalog_cache.invalidate("cards:")
+    
     return _parse_card(result.data[0])
 
 
@@ -109,6 +117,9 @@ async def delete_card(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
     
     supabase.table("cards").delete().eq("id", card_id).execute()
+    
+    # Invalidate cache
+    catalog_cache.invalidate("cards:")
 
 
 # ============================================================
@@ -136,6 +147,9 @@ async def create_benefit(
         "schedule": request.schedule.value,
     }).execute()
     
+    # Invalidate cache for this card
+    catalog_cache.invalidate(f"cards:{card_id}")
+    
     return _parse_benefit(result.data[0])
 
 
@@ -148,9 +162,11 @@ async def update_benefit(
 ):
     """Update a benefit."""
     # Check if benefit exists
-    existing = supabase.table("benefits").select("id").eq("id", benefit_id).execute()
+    existing = supabase.table("benefits").select("id, card_id").eq("id", benefit_id).execute()
     if not existing.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Benefit not found")
+    
+    card_id = existing.data[0]["card_id"]
     
     # Build update dict with only provided fields
     update_data = {}
@@ -167,6 +183,10 @@ async def update_benefit(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
     
     result = supabase.table("benefits").update(update_data).eq("id", benefit_id).execute()
+    
+    # Invalidate cache for this card
+    catalog_cache.invalidate(f"cards:{card_id}")
+    
     return _parse_benefit(result.data[0])
 
 
@@ -178,11 +198,16 @@ async def delete_benefit(
 ):
     """Delete a benefit."""
     # Check if benefit exists
-    existing = supabase.table("benefits").select("id").eq("id", benefit_id).execute()
+    existing = supabase.table("benefits").select("id, card_id").eq("id", benefit_id).execute()
     if not existing.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Benefit not found")
     
+    card_id = existing.data[0]["card_id"]
+    
     supabase.table("benefits").delete().eq("id", benefit_id).execute()
+    
+    # Invalidate cache for this card
+    catalog_cache.invalidate(f"cards:{card_id}")
 
 
 @router.get("/cards/{card_id}", response_model=CardWithBenefits)

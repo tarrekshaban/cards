@@ -8,6 +8,7 @@ from supabase import Client
 from gotrue.types import User
 
 from ..dependencies import get_supabase_admin_client, get_current_user
+from ..services.cache import catalog_cache
 from ..schemas import (
     BenefitSchedule,
     Card,
@@ -136,8 +137,16 @@ async def list_cards(
     supabase: Annotated[Client, Depends(get_supabase_admin_client)],
 ):
     """List all cards in the catalog."""
+    cache_key = "cards:list"
+    cached = catalog_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     result = supabase.table("cards").select("*").order("name").execute()
-    return [_parse_card(row) for row in result.data]
+    cards = [_parse_card(row) for row in result.data]
+    
+    catalog_cache.set(cache_key, cards)
+    return cards
 
 
 @router.get("/cards/{card_id}", response_model=CardWithBenefits)
@@ -147,6 +156,11 @@ async def get_card(
     supabase: Annotated[Client, Depends(get_supabase_admin_client)],
 ):
     """Get a card with its benefits."""
+    cache_key = f"cards:{card_id}"
+    cached = catalog_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     # Get card
     card_result = supabase.table("cards").select("*").eq("id", card_id).execute()
     if not card_result.data:
@@ -158,7 +172,9 @@ async def get_card(
     benefits_result = supabase.table("benefits").select("*").eq("card_id", card_id).order("name").execute()
     benefits = [_parse_benefit(row) for row in benefits_result.data]
     
-    return CardWithBenefits(**card.model_dump(), benefits=benefits)
+    full_card = CardWithBenefits(**card.model_dump(), benefits=benefits)
+    catalog_cache.set(cache_key, full_card)
+    return full_card
 
 
 # ============================================================
