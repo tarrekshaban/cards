@@ -341,9 +341,6 @@ async def remove_user_card(
 # Available Benefits (Dashboard)
 # ============================================================
 
-import time
-import json
-
 @router.get("/user/benefits/available", response_model=list[AvailableBenefit])
 async def list_available_benefits(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -351,8 +348,6 @@ async def list_available_benefits(
     show_hidden: bool = Query(default=False, description="Include hidden benefits"),
 ):
     """List all unredeemed benefits across all user's cards (for dashboard)."""
-    start_time = time.time()
-
     # Get user's cards
     user_cards_result = supabase.table("user_cards").select("*, cards(*)").eq("user_id", current_user.id).execute()
     
