@@ -5,18 +5,12 @@ import { useAuth } from '../../hooks/useAuth'
 const navLinks = [
   { path: '/dashboard', label: 'Dashboard' },
   { path: '/my-cards', label: 'My Cards' },
-  { path: '/cards', label: 'Browse' },
 ]
 
 export default function NavBar() {
   const location = useLocation()
-  const { logout, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  const handleLogout = async () => {
-    setIsMenuOpen(false)
-    await logout()
-  }
 
   // Build nav links, including Admin only for admins
   const links = isAdmin
@@ -50,9 +44,9 @@ export default function NavBar() {
               {link.label}
             </Link>
           ))}
-          <button onClick={handleLogout} className="btn-secondary text-xs ml-2">
-            Logout
-          </button>
+          <Link to="/cards" className="btn-secondary text-xs ml-2">
+            Add Card
+          </Link>
         </nav>
 
         {/* Mobile Hamburger Button */}
@@ -93,12 +87,13 @@ export default function NavBar() {
               {link.label}
             </Link>
           ))}
-          <button
-            onClick={handleLogout}
-            className="py-3 px-2 text-base text-left text-text-muted hover:text-text transition-colors mt-2 pt-2 border-t border-border"
+          <Link
+            to="/cards"
+            onClick={handleLinkClick}
+            className="btn-secondary text-base mt-2"
           >
-            Logout
-          </button>
+            Add Card
+          </Link>
         </nav>
       )}
     </header>
