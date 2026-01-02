@@ -360,10 +360,6 @@ async def list_available_benefits(
     show_hidden: bool = Query(default=False, description="Include hidden benefits"),
 ):
     """List all unredeemed benefits across all user's cards (for dashboard)."""
-    # #region agent log
-    import time as _time; _avail_start = _time.time(); _log_path = "/Users/tarrek/Dev/experiments/cards/.cursor/debug.log"; import json as _json
-    with open(_log_path, "a") as _f: _f.write(_json.dumps({"location": "cards.py:available_benefits:entry", "message": "Available benefits endpoint called", "data": {"user_id": current_user.id, "show_hidden": show_hidden}, "timestamp": int(_time.time()*1000), "sessionId": "debug-session", "hypothesisId": "C"}) + "\n")
-    # #endregion
     # Get user's cards
     user_cards_result = supabase.table("user_cards").select("*, cards(*)").eq("user_id", current_user.id).execute()
     
@@ -478,10 +474,6 @@ async def list_available_benefits(
     # Sort by reset date (soonest first), then by value (highest first)
     available.sort(key=lambda x: (x.resets_at or date.max, -x.benefit.value))
     
-    # #region agent log
-    _avail_total_ms = int((_time.time() - _avail_start) * 1000)
-    with open(_log_path, "a") as _f: _f.write(_json.dumps({"location": "cards.py:available_benefits:exit", "message": "Available benefits complete", "data": {"total_time_ms": _avail_total_ms, "num_benefits": len(available)}, "timestamp": int(_time.time()*1000), "sessionId": "debug-session", "hypothesisId": "C"}) + "\n")
-    # #endregion
     return available
 
 
@@ -557,10 +549,6 @@ async def get_annual_summary(
     year: int = Query(default_factory=lambda: date.today().year),
 ):
     """Get annual summary across all user's cards (calendar year focus)."""
-    # #region agent log
-    import time as _time; _annual_start = _time.time(); _log_path = "/Users/tarrek/Dev/experiments/cards/.cursor/debug.log"; import json as _json
-    with open(_log_path, "a") as _f: _f.write(_json.dumps({"location": "cards.py:annual_summary:entry", "message": "Annual summary endpoint called", "data": {"user_id": current_user.id, "year": year}, "timestamp": int(_time.time()*1000), "sessionId": "debug-session", "hypothesisId": "A"}) + "\n")
-    # #endregion
     # Get all user's cards
     user_cards_result = supabase.table("user_cards").select("*, cards(*)").eq("user_id", current_user.id).execute()
 
@@ -575,33 +563,18 @@ async def get_annual_summary(
             total_annual_fees=Decimal("0"),
         )
 
-    # #region agent log
-    _batch_start = _time.time(); _query_count = 1  # Already did user_cards query
-    with open(_log_path, "a") as _f: _f.write(_json.dumps({"location": "cards.py:annual_summary:batch_start", "message": "Starting batch queries", "data": {"num_cards": len(user_cards_result.data)}, "timestamp": int(_time.time()*1000), "sessionId": "debug-session", "hypothesisId": "A"}) + "\n")
-    # #endregion
-
     # Extract IDs for batch queries
     card_ids = [row["cards"]["id"] for row in user_cards_result.data]
     user_card_ids = [row["id"] for row in user_cards_result.data]
 
     # Batch fetch all benefits for these cards (1 query instead of N)
     all_benefits_result = supabase.table("benefits").select("*").in_("card_id", card_ids).execute()
-    # #region agent log
-    _query_count += 1
-    # #endregion
 
     # Batch fetch all redemptions for these user cards for the year (1 query instead of N)
     all_redemptions_result = supabase.table("benefit_redemptions").select("*").in_("user_card_id", user_card_ids).eq("period_year", year).execute()
-    # #region agent log
-    _query_count += 1
-    # #endregion
 
     # Batch fetch all preferences for these user cards (1 query instead of N)
     all_prefs_result = supabase.table("user_benefit_preferences").select("*").in_("user_card_id", user_card_ids).execute()
-    # #region agent log
-    _query_count += 1
-    with open(_log_path, "a") as _f: _f.write(_json.dumps({"location": "cards.py:annual_summary:batch_done", "message": "Batch queries complete", "data": {"query_count": _query_count, "batch_time_ms": int((_time.time()-_batch_start)*1000)}, "timestamp": int(_time.time()*1000), "sessionId": "debug-session", "hypothesisId": "A"}) + "\n")
-    # #endregion
 
     # Organize data for lookups
     benefits_by_card_id: dict[str, list[dict]] = {}
@@ -684,10 +657,6 @@ async def get_annual_summary(
                 redeemed_count += redemption_counts.get(benefit.id, 0)
             total_count += yearly_count
 
-    # #region agent log
-    _annual_total_ms = int((_time.time() - _annual_start) * 1000)
-    with open(_log_path, "a") as _f: _f.write(_json.dumps({"location": "cards.py:annual_summary:exit", "message": "Annual summary complete", "data": {"total_time_ms": _annual_total_ms, "total_queries": _query_count, "num_cards": len(user_cards_result.data)}, "timestamp": int(_time.time()*1000), "sessionId": "debug-session", "hypothesisId": "A"}) + "\n")
-    # #endregion
     return AnnualSummary(
         year=year,
         total_redeemed=total_redeemed,

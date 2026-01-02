@@ -16,18 +16,11 @@ export default function DashboardPage() {
   const [isRedeeming, setIsRedeeming] = useState(false)
 
   const loadData = useCallback(async () => {
-    // #region agent log
-    const _loadStart = Date.now();
-    fetch('http://127.0.0.1:7243/ingest/2dd099bc-fae0-454c-9e14-e159c43d0677',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.tsx:loadData:entry',message:'loadData called',data:{showHidden},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     try {
       const [benefitsData, summaryData] = await Promise.all([
         userCardsApi.getAvailableBenefits(showHidden),
         userCardsApi.getAnnualSummary(),
       ])
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/2dd099bc-fae0-454c-9e14-e159c43d0677',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.tsx:loadData:success',message:'loadData complete',data:{durationMs:Date.now()-_loadStart,benefitsCount:benefitsData.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       setBenefits(benefitsData)
       setSummary(summaryData)
     } catch (err) {
@@ -51,23 +44,13 @@ export default function DashboardPage() {
     if (!selectedBenefit) return
 
     setIsRedeeming(true)
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/2dd099bc-fae0-454c-9e14-e159c43d0677',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.tsx:handleConfirmRedeem',message:'Redeem started - will call loadData then getAnnualSummary',data:{benefitId:selectedBenefit.benefit.id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     try {
       await userCardsApi.redeemBenefit(selectedBenefit.user_card.id, selectedBenefit.benefit.id, amount)
       
       // Reload data to reflect changes (benefit may still be in list if partial)
       await loadData()
       
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/2dd099bc-fae0-454c-9e14-e159c43d0677',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'DashboardPage.tsx:handleConfirmRedeem:redundantCall',message:'About to call getAnnualSummary AGAIN after loadData already fetched it',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      // Refresh summary
-      const updatedSummary = await userCardsApi.getAnnualSummary()
-      setSummary(updatedSummary)
-      
-      // Close modal
+      // Close modal - loadData already refreshed summary
       setSelectedBenefit(null)
     } catch (err) {
       throw err // Let the modal handle the error display
@@ -82,11 +65,8 @@ export default function DashboardPage() {
         auto_redeem: autoRedeem,
         hidden: hidden,
       })
-      // Reload data to reflect changes
+      // Reload data to reflect changes - loadData already fetches summary
       await loadData()
-      // Also refresh summary since auto-redeem affects totals
-      const updatedSummary = await userCardsApi.getAnnualSummary()
-      setSummary(updatedSummary)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update preferences')
     }
