@@ -154,8 +154,8 @@ class UserCard(BaseModel):
 
 # Benefit Redemption Schemas
 class BenefitRedemptionCreate(BaseModel):
-    """Request to mark a benefit as redeemed."""
-    pass  # Period info is calculated server-side
+    """Request to mark a benefit as redeemed (partial or full)."""
+    amount: Decimal | None = None  # If None, defaults to full remaining amount
 
 
 class BenefitRedemption(BaseModel):
@@ -164,6 +164,7 @@ class BenefitRedemption(BaseModel):
     user_card_id: str
     benefit_id: str
     redeemed_at: datetime
+    amount_redeemed: Decimal
     period_year: int
     period_month: int | None = None
     period_quarter: int | None = None
@@ -197,6 +198,8 @@ class AvailableBenefit(BaseModel):
     resets_at: date | None = None
     auto_redeem: bool = False
     hidden: bool = False
+    amount_redeemed: Decimal = Decimal("0")
+    amount_remaining: Decimal = Decimal("0")
 
 
 # Yearly Summary Schemas

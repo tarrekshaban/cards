@@ -226,6 +226,7 @@ import type {
   AddUserCardRequest,
   BenefitPreference,
   UpdateBenefitPreferenceRequest,
+  RedeemBenefitRequest,
 } from '../types/cards'
 
 // Card Catalog API
@@ -270,9 +271,10 @@ export const userCardsApi = {
     return api.get<CardSummary>(`/user/cards/${userCardId}/summary${params}`)
   },
 
-  // Redeem a benefit
-  async redeemBenefit(userCardId: string, benefitId: string): Promise<BenefitRedemption> {
-    return api.post<BenefitRedemption>(`/user/cards/${userCardId}/benefits/${benefitId}/redeem`)
+  // Redeem a benefit (partial or full)
+  async redeemBenefit(userCardId: string, benefitId: string, amount?: number): Promise<BenefitRedemption> {
+    const data: RedeemBenefitRequest = amount !== undefined ? { amount } : {}
+    return api.post<BenefitRedemption>(`/user/cards/${userCardId}/benefits/${benefitId}/redeem`, data)
   },
 
   // Unredeem a benefit

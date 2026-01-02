@@ -53,6 +53,8 @@ export interface AvailableBenefit {
   resets_at: string | null
   auto_redeem: boolean
   hidden: boolean
+  amount_redeemed: number
+  amount_remaining: number
 }
 
 export interface UserCardWithBenefits extends UserCard {
@@ -64,6 +66,7 @@ export interface BenefitRedemption {
   user_card_id: string
   benefit_id: string
   redeemed_at: string
+  amount_redeemed: number
   period_year: number
   period_month?: number
   period_quarter?: number
@@ -143,4 +146,8 @@ export interface BenefitPreference {
 export interface UpdateBenefitPreferenceRequest {
   auto_redeem?: boolean
   hidden?: boolean
+}
+
+export interface RedeemBenefitRequest {
+  amount?: number
 }

@@ -2,19 +2,18 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 import BenefitItem from '../components/benefits/BenefitItem'
+import RedeemModal from '../components/benefits/RedeemModal'
 import { userCardsApi } from '../api/client'
 import type { AvailableBenefit, AnnualSummary } from '../types/cards'
-
-type SortBy = 'urgency' | 'value' | 'card'
 
 export default function DashboardPage() {
   const [benefits, setBenefits] = useState<AvailableBenefit[]>([])
   const [summary, setSummary] = useState<AnnualSummary | null>(null)
-  const [sortBy, setSortBy] = useState<SortBy>('urgency')
   const [showHidden, setShowHidden] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [loadingBenefitId, setLoadingBenefitId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [selectedBenefit, setSelectedBenefit] = useState<AvailableBenefit | null>(null)
+  const [isRedeeming, setIsRedeeming] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
@@ -35,19 +34,32 @@ export default function DashboardPage() {
     loadData()
   }, [loadData])
 
-  const handleRedeem = async (benefit: AvailableBenefit) => {
-    setLoadingBenefitId(benefit.benefit.id)
+  // Open the redeem modal for a benefit
+  const handleOpenRedeemModal = (benefit: AvailableBenefit) => {
+    setSelectedBenefit(benefit)
+  }
+
+  // Confirm and process the redemption
+  const handleConfirmRedeem = async (amount: number) => {
+    if (!selectedBenefit) return
+
+    setIsRedeeming(true)
     try {
-      await userCardsApi.redeemBenefit(benefit.user_card.id, benefit.benefit.id)
-      // Remove from list since it's now redeemed
-      setBenefits((prev) => prev.filter((b) => b.benefit.id !== benefit.benefit.id))
-      // Refresh the summary to update redeemed totals
+      await userCardsApi.redeemBenefit(selectedBenefit.user_card.id, selectedBenefit.benefit.id, amount)
+      
+      // Reload data to reflect changes (benefit may still be in list if partial)
+      await loadData()
+      
+      // Refresh summary
       const updatedSummary = await userCardsApi.getAnnualSummary()
       setSummary(updatedSummary)
+      
+      // Close modal
+      setSelectedBenefit(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to redeem benefit')
+      throw err // Let the modal handle the error display
     } finally {
-      setLoadingBenefitId(null)
+      setIsRedeeming(false)
     }
   }
 
@@ -66,25 +78,6 @@ export default function DashboardPage() {
       setError(err instanceof Error ? err.message : 'Failed to update preferences')
     }
   }
-
-  const sortedBenefits = [...benefits].sort((a, b) => {
-    switch (sortBy) {
-      case 'urgency':
-        // Sort by reset date (soonest first)
-        const dateA = a.resets_at ? new Date(a.resets_at).getTime() : Infinity
-        const dateB = b.resets_at ? new Date(b.resets_at).getTime() : Infinity
-        return dateA - dateB
-      case 'value':
-        // Sort by value (highest first)
-        return b.benefit.value - a.benefit.value
-      case 'card':
-        // Group by card name
-        return a.user_card.card.name.localeCompare(b.user_card.card.name)
-      default:
-        return 0
-    }
-  })
-
 
   if (isLoading) {
     return (
@@ -159,27 +152,25 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {/* Sort Options and Filters */}
-            <div className="flex items-center justify-between gap-2 px-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-text-faint">Sort by:</span>
-                {(['urgency', 'value', 'card'] as SortBy[]).map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setSortBy(option)}
-                    className={`text-[10px] px-2 py-0.5 transition-colors ${
-                      sortBy === option
-                        ? 'bg-surface-raised border border-text-muted text-text'
-                        : 'text-text-muted hover:text-text'
-                    }`}
-                  >
-                    {option === 'urgency' ? 'Urgency' : option === 'value' ? 'Value' : 'Card'}
-                  </button>
-                ))}
-              </div>
+            {/* Benefits List */}
+            <div className="space-y-2">
+              {benefits.map((benefit) => (
+                <BenefitItem
+                  key={`${benefit.user_card.id}-${benefit.benefit.id}`}
+                  benefit={benefit}
+                  onRedeem={() => handleOpenRedeemModal(benefit)}
+                  onUnredeem={() => {}} // Not used on dashboard
+                  onUpdatePreferences={(autoRedeem, hidden) => handleUpdatePreferences(benefit, autoRedeem, hidden)}
+                  showCard={true}
+                />
+              ))}
+            </div>
+
+            {/* Show Hidden Toggle */}
+            <div className="text-center">
               <button
                 onClick={() => setShowHidden(!showHidden)}
-                className={`text-[10px] px-2 py-0.5 transition-colors ${
+                className={`text-[10px] px-3 py-1 transition-colors ${
                   showHidden
                     ? 'bg-surface-raised border border-text-muted text-text'
                     : 'text-text-muted hover:text-text'
@@ -188,24 +179,19 @@ export default function DashboardPage() {
                 {showHidden ? 'Hide hidden' : 'Show hidden'}
               </button>
             </div>
-
-            {/* Benefits List */}
-            <div className="space-y-2">
-              {sortedBenefits.map((benefit) => (
-                <BenefitItem
-                  key={`${benefit.user_card.id}-${benefit.benefit.id}`}
-                  benefit={benefit}
-                  onRedeem={() => handleRedeem(benefit)}
-                  onUnredeem={() => {}} // Not used on dashboard
-                  onUpdatePreferences={(autoRedeem, hidden) => handleUpdatePreferences(benefit, autoRedeem, hidden)}
-                  isLoading={loadingBenefitId === benefit.benefit.id}
-                  showCard={true}
-                />
-              ))}
-            </div>
           </>
         )}
       </div>
+
+      {/* Redeem Modal */}
+      {selectedBenefit && (
+        <RedeemModal
+          benefit={selectedBenefit}
+          onConfirm={handleConfirmRedeem}
+          onClose={() => setSelectedBenefit(null)}
+          isLoading={isRedeeming}
+        />
+      )}
     </Layout>
   )
 }

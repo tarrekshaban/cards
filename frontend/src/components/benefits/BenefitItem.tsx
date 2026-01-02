@@ -73,8 +73,11 @@ export default function BenefitItem({
   isLoading = false,
   showCard = true,
 }: BenefitItemProps) {
-  const { benefit: b, user_card, is_redeemed, resets_at, auto_redeem, hidden } = benefit
+  const { benefit: b, user_card, is_redeemed, resets_at, auto_redeem, hidden, amount_remaining, amount_redeemed } = benefit
   const [menuOpen, setMenuOpen] = useState(false)
+  
+  // Check if this is a partial redemption (some redeemed, some remaining)
+  const isPartiallyRedeemed = amount_redeemed > 0 && amount_remaining > 0
 
   const handleToggleAutoRedeem = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -91,7 +94,14 @@ export default function BenefitItem({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-sm font-medium">${Number(b.value)}</span>
+            {isPartiallyRedeemed ? (
+              <>
+                <span className="text-sm font-medium">${Number(amount_remaining)}</span>
+                <span className="text-[10px] text-text-faint">of ${Number(b.value)}</span>
+              </>
+            ) : (
+              <span className="text-sm font-medium">${Number(b.value)}</span>
+            )}
             <span className="text-sm text-text-muted">{b.name}</span>
             <span className="text-[9px] px-1 py-0.5 border border-border text-text-faint shrink-0">
               {formatSchedule(b.schedule)}

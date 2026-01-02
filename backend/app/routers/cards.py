@@ -19,6 +19,7 @@ from ..schemas import (
     UserCardWithBenefits,
     AvailableBenefit,
     BenefitRedemption,
+    BenefitRedemptionCreate,
     BenefitSummary,
     CardSummary,
     AnnualSummary,
@@ -350,32 +351,40 @@ async def list_available_benefits(
             if hidden and not show_hidden:
                 continue
             
-            # Check if redeemed
-            is_redeemed = False
+            # Calculate amount redeemed in current period
+            amount_redeemed = Decimal("0")
             if benefit.id in redemptions_by_benefit:
                 for r in redemptions_by_benefit[benefit.id]:
+                    # Check if this redemption is for the current period
+                    is_current_period = False
                     if benefit.schedule == BenefitSchedule.one_time:
-                        is_redeemed = True
-                        break
+                        is_current_period = True
                     elif r["period_year"] == period[0]:
                         if period[1] is not None and r.get("period_month") == period[1]:
-                            is_redeemed = True
-                            break
+                            is_current_period = True
                         elif period[2] is not None and r.get("period_quarter") == period[2]:
-                            is_redeemed = True
-                            break
+                            is_current_period = True
                         elif period[3] is not None and r.get("period_half") == period[3]:
-                            is_redeemed = True
-                            break
+                            is_current_period = True
                         elif period[1] is None and period[2] is None and period[3] is None:
-                            is_redeemed = True
-                            break
+                            is_current_period = True
+                    
+                    if is_current_period:
+                        amount_redeemed = Decimal(str(r.get("amount_redeemed", 0)))
+                        break
             
-            # Treat auto-redeem benefits as redeemed (don't show in unredeemed list)
+            # Calculate remaining amount
+            amount_remaining = benefit.value - amount_redeemed
+            
+            # Treat auto-redeem benefits as fully redeemed
             if auto_redeem:
-                is_redeemed = True
+                amount_remaining = Decimal("0")
+                amount_redeemed = benefit.value
             
-            if not is_redeemed:
+            # Only show if there's remaining value
+            is_fully_redeemed = amount_remaining <= 0
+            
+            if not is_fully_redeemed:
                 available.append(AvailableBenefit(
                     benefit=benefit,
                     user_card=user_card,
@@ -383,6 +392,8 @@ async def list_available_benefits(
                     resets_at=_calculate_reset_date(benefit.schedule, user_card.card_open_date),
                     auto_redeem=auto_redeem,
                     hidden=hidden,
+                    amount_redeemed=amount_redeemed,
+                    amount_remaining=amount_remaining,
                 ))
     
     # Sort by reset date (soonest first), then by value (highest first)
@@ -489,16 +500,16 @@ async def get_annual_summary(
         for p in prefs_result.data:
             prefs_by_benefit[p["benefit_id"]] = p
         
-        # Count redemptions per benefit
-        redemption_counts: dict[str, int] = {}
+        # Sum amount_redeemed per benefit for the year
+        redemption_amounts: dict[str, Decimal] = {}
         for r in redemptions_result.data:
             bid = r["benefit_id"]
-            redemption_counts[bid] = redemption_counts.get(bid, 0) + 1
+            amount = Decimal(str(r.get("amount_redeemed", 0)))
+            redemption_amounts[bid] = redemption_amounts.get(bid, Decimal("0")) + amount
         
         for b_row in benefits_result.data:
             benefit = _parse_benefit(b_row)
             yearly_count = _get_total_count_for_year(benefit.schedule)
-            benefit_redeemed = redemption_counts.get(benefit.id, 0)
             
             # Check if auto-redeem is enabled for this benefit
             pref = prefs_by_benefit.get(benefit.id, {})
@@ -509,17 +520,23 @@ async def get_annual_summary(
             if hidden:
                 continue
             
-            # If auto-redeem, count all periods as redeemed
-            if auto_redeem:
-                benefit_redeemed = yearly_count
-            
-            # Calculate values
-            benefit_redeemed_value = benefit.value * benefit_redeemed
+            # Calculate total available value for the year
             benefit_total_value = benefit.value * yearly_count
+            
+            # Get actual redeemed amount (sum of all partial redemptions)
+            benefit_redeemed_value = redemption_amounts.get(benefit.id, Decimal("0"))
+            
+            # If auto-redeem, count full value as redeemed
+            if auto_redeem:
+                benefit_redeemed_value = benefit_total_value
             
             total_redeemed += benefit_redeemed_value
             total_available += benefit_total_value
-            redeemed_count += benefit_redeemed
+            
+            # For redeemed_count, count how many periods have any redemption
+            # (This is approximate - a partial redemption counts as 1)
+            if benefit.id in redemption_amounts or auto_redeem:
+                redeemed_count += 1 if not auto_redeem else yearly_count
             total_count += yearly_count
     
     return AnnualSummary(
@@ -542,8 +559,9 @@ async def redeem_benefit(
     benefit_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+    request: BenefitRedemptionCreate = BenefitRedemptionCreate(),
 ):
-    """Mark a benefit as redeemed for the current period."""
+    """Mark a benefit as redeemed (partial or full) for the current period."""
     # Verify ownership
     uc_result = supabase.table("user_cards").select("*").eq("id", user_card_id).eq("user_id", current_user.id).execute()
     if not uc_result.data:
@@ -560,8 +578,8 @@ async def redeem_benefit(
     benefit = _parse_benefit(benefit_result.data[0])
     period = _calculate_current_period(benefit.schedule, card_open_date)
     
-    # Check if already redeemed
-    existing_query = supabase.table("benefit_redemptions").select("id").eq("user_card_id", user_card_id).eq("benefit_id", benefit_id).eq("period_year", period[0])
+    # Check for existing redemption in this period
+    existing_query = supabase.table("benefit_redemptions").select("*").eq("user_card_id", user_card_id).eq("benefit_id", benefit_id).eq("period_year", period[0])
     
     if period[1] is not None:
         existing_query = existing_query.eq("period_month", period[1])
@@ -571,18 +589,41 @@ async def redeem_benefit(
         existing_query = existing_query.eq("period_half", period[3])
     
     existing = existing_query.execute()
-    if existing.data:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Benefit already redeemed for this period")
     
-    # Create redemption
-    result = supabase.table("benefit_redemptions").insert({
-        "user_card_id": user_card_id,
-        "benefit_id": benefit_id,
-        "period_year": period[0],
-        "period_month": period[1],
-        "period_quarter": period[2],
-        "period_half": period[3],
-    }).execute()
+    # Calculate current amount redeemed and remaining
+    current_amount_redeemed = Decimal("0")
+    if existing.data:
+        current_amount_redeemed = Decimal(str(existing.data[0].get("amount_redeemed", 0)))
+    
+    amount_remaining = benefit.value - current_amount_redeemed
+    
+    # Determine amount to redeem (default to full remaining)
+    redeem_amount = request.amount if request.amount is not None else amount_remaining
+    
+    # Validate amount
+    if redeem_amount <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be greater than 0")
+    if redeem_amount > amount_remaining:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Amount exceeds remaining value (${amount_remaining})")
+    
+    new_total = current_amount_redeemed + redeem_amount
+    
+    if existing.data:
+        # Update existing redemption with new total
+        result = supabase.table("benefit_redemptions").update({
+            "amount_redeemed": float(new_total),
+        }).eq("id", existing.data[0]["id"]).execute()
+    else:
+        # Create new redemption
+        result = supabase.table("benefit_redemptions").insert({
+            "user_card_id": user_card_id,
+            "benefit_id": benefit_id,
+            "period_year": period[0],
+            "period_month": period[1],
+            "period_quarter": period[2],
+            "period_half": period[3],
+            "amount_redeemed": float(redeem_amount),
+        }).execute()
     
     row = result.data[0]
     return BenefitRedemption(
@@ -590,6 +631,7 @@ async def redeem_benefit(
         user_card_id=row["user_card_id"],
         benefit_id=row["benefit_id"],
         redeemed_at=row["redeemed_at"],
+        amount_redeemed=Decimal(str(row["amount_redeemed"])),
         period_year=row["period_year"],
         period_month=row.get("period_month"),
         period_quarter=row.get("period_quarter"),
