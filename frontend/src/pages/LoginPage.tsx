@@ -53,6 +53,8 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

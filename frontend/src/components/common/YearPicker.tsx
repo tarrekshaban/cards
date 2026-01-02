@@ -20,7 +20,7 @@ export default function YearPicker({
     <select
       value={value}
       onChange={(e) => onChange(parseInt(e.target.value, 10))}
-      className="input w-auto px-2 py-1 text-xs"
+      className="input w-auto"
     >
       {years.map((year) => (
         <option key={year} value={year}>

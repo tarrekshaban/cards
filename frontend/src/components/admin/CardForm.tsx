@@ -58,6 +58,7 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
           onChange={(e) => setName(e.target.value)}
           placeholder="Chase Sapphire Reserve"
           className="input"
+          autoCapitalize="words"
         />
       </div>
 
@@ -88,6 +89,8 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
           onChange={(e) => setImageUrl(e.target.value)}
           placeholder="https://..."
           className="input"
+          autoCapitalize="off"
+          autoCorrect="off"
         />
       </div>
 
@@ -101,6 +104,7 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
             type="number"
             min="0"
             step="0.01"
+            inputMode="decimal"
             value={annualFee}
             onChange={(e) => setAnnualFee(e.target.value)}
             placeholder="0"

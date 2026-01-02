@@ -92,6 +92,7 @@ export default function RedeemModal({
                 min={0}
                 max={amount_remaining}
                 step={0.01}
+                inputMode="decimal"
                 value={amount}
                 onChange={handleInputChange}
                 className="input flex-1 text-lg"

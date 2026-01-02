@@ -63,6 +63,7 @@ export default function AddCardModal({ card, onClose, onAdd, isLoading = false }
               onChange={(e) => setNickname(e.target.value)}
               placeholder="e.g. Business Card"
               className="input"
+              autoCapitalize="words"
             />
             <p className="text-[10px] text-text-faint mt-1">
               Helpful if you have multiple cards of the same type.

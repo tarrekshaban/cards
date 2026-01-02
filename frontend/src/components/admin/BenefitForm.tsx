@@ -65,6 +65,7 @@ export default function BenefitForm({ benefit, onSubmit, onCancel, isLoading = f
           onChange={(e) => setName(e.target.value)}
           placeholder="Travel Credit"
           className="input"
+          autoCapitalize="words"
         />
       </div>
 
@@ -93,6 +94,7 @@ export default function BenefitForm({ benefit, onSubmit, onCancel, isLoading = f
             placeholder="300"
             min="0"
             step="0.01"
+            inputMode="decimal"
             className="input"
           />
         </div>

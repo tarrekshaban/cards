@@ -58,7 +58,7 @@ export default function NavBar() {
         {/* Mobile Hamburger Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="sm:hidden p-2 -mr-2 text-text-muted hover:text-text transition-colors"
+          className="sm:hidden p-3 -mr-3 text-text-muted hover:text-text transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Toggle menu"
           aria-expanded={isMenuOpen}
         >
@@ -84,7 +84,7 @@ export default function NavBar() {
               key={link.path}
               to={link.path}
               onClick={handleLinkClick}
-              className={`py-2 px-1 text-sm transition-colors ${
+              className={`py-3 px-2 text-base transition-colors ${
                 location.pathname === link.path
                   ? 'text-text'
                   : 'text-text-muted hover:text-text'
@@ -95,7 +95,7 @@ export default function NavBar() {
           ))}
           <button
             onClick={handleLogout}
-            className="py-2 px-1 text-sm text-left text-text-muted hover:text-text transition-colors mt-2 pt-2 border-t border-border"
+            className="py-3 px-2 text-base text-left text-text-muted hover:text-text transition-colors mt-2 pt-2 border-t border-border"
           >
             Logout
           </button>
