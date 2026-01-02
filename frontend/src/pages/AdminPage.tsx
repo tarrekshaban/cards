@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout'
 import CardForm from '../components/admin/CardForm'
 import BenefitForm from '../components/admin/BenefitForm'
 import { cardsApi, adminApi } from '../api/client'
-import type { Card, CardWithBenefits, Benefit, CreateCardRequest, CreateBenefitRequest } from '../types/cards'
+import type { Card, CardWithBenefits, Benefit, CreateCardRequest, UpdateCardRequest, CreateBenefitRequest, UpdateBenefitRequest } from '../types/cards'
 
 type View = 'list' | 'new-card' | 'edit-card' | 'card-detail' | 'new-benefit' | 'edit-benefit'
 
@@ -38,10 +38,10 @@ export default function AdminPage() {
     }
   }
 
-  const handleCreateCard = async (data: CreateCardRequest) => {
+  const handleCreateCard = async (data: CreateCardRequest | UpdateCardRequest) => {
     setIsLoading(true)
     try {
-      await adminApi.createCard(data)
+      await adminApi.createCard(data as CreateCardRequest)
       await loadCards()
       setView('list')
     } finally {
@@ -49,11 +49,11 @@ export default function AdminPage() {
     }
   }
 
-  const handleUpdateCard = async (data: CreateCardRequest) => {
+  const handleUpdateCard = async (data: CreateCardRequest | UpdateCardRequest) => {
     if (!selectedCard) return
     setIsLoading(true)
     try {
-      await adminApi.updateCard(selectedCard.id, data)
+      await adminApi.updateCard(selectedCard.id, data as UpdateCardRequest)
       await loadCards()
       await loadCardDetail(selectedCard.id)
     } finally {
@@ -74,11 +74,11 @@ export default function AdminPage() {
     }
   }
 
-  const handleCreateBenefit = async (data: CreateBenefitRequest) => {
+  const handleCreateBenefit = async (data: CreateBenefitRequest | UpdateBenefitRequest) => {
     if (!selectedCard) return
     setIsLoading(true)
     try {
-      await adminApi.createBenefit(selectedCard.id, data)
+      await adminApi.createBenefit(selectedCard.id, data as CreateBenefitRequest)
       await loadCardDetail(selectedCard.id)
       setView('card-detail')
     } finally {
@@ -86,11 +86,11 @@ export default function AdminPage() {
     }
   }
 
-  const handleUpdateBenefit = async (data: CreateBenefitRequest) => {
+  const handleUpdateBenefit = async (data: CreateBenefitRequest | UpdateBenefitRequest) => {
     if (!selectedBenefit || !selectedCard) return
     setIsLoading(true)
     try {
-      await adminApi.updateBenefit(selectedBenefit.id, data)
+      await adminApi.updateBenefit(selectedBenefit.id, data as UpdateBenefitRequest)
       await loadCardDetail(selectedCard.id)
       setView('card-detail')
     } finally {

@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout'
 import CardTile from '../components/cards/CardTile'
 import AddCardModal from '../components/cards/AddCardModal'
 import { cardsApi, userCardsApi } from '../api/client'
-import type { Card, CardWithBenefits, UserCard } from '../types/cards'
+import type { Card, CardWithBenefits } from '../types/cards'
 
 export default function CardsCatalogPage() {
   const [cards, setCards] = useState<Card[]>([])
