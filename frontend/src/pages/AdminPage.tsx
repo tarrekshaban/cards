@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import Layout from '../components/layout/Layout'
 import CardForm from '../components/admin/CardForm'
 import BenefitForm from '../components/admin/BenefitForm'
+import BulkBenefitForm from '../components/admin/BulkBenefitForm'
 import { cardsApi, adminApi } from '../api/client'
 import type { Card, CardWithBenefits, Benefit, CreateCardRequest, UpdateCardRequest, CreateBenefitRequest, UpdateBenefitRequest } from '../types/cards'
 
-type View = 'list' | 'new-card' | 'edit-card' | 'card-detail' | 'new-benefit' | 'edit-benefit'
+type View = 'list' | 'new-card' | 'edit-card' | 'card-detail' | 'new-benefit' | 'edit-benefit' | 'bulk-benefit'
 
 export default function AdminPage() {
   const [cards, setCards] = useState<Card[]>([])
@@ -110,6 +111,18 @@ export default function AdminPage() {
     }
   }
 
+  const handleBulkCreateBenefits = async (benefits: CreateBenefitRequest[]) => {
+    if (!selectedCard) return
+    setIsLoading(true)
+    try {
+      await adminApi.bulkCreateBenefits(selectedCard.id, benefits)
+      await loadCardDetail(selectedCard.id)
+      setView('card-detail')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Layout>
       <div className="space-y-4">
@@ -129,7 +142,7 @@ export default function AdminPage() {
                 if (view === 'card-detail') {
                   setSelectedCard(null)
                   setView('list')
-                } else if (view === 'new-benefit' || view === 'edit-benefit') {
+                } else if (view === 'new-benefit' || view === 'edit-benefit' || view === 'bulk-benefit') {
                   setSelectedBenefit(null)
                   setView('card-detail')
                 } else {
@@ -229,9 +242,14 @@ export default function AdminPage() {
             <div className="panel">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium">Benefits</h3>
-                <button onClick={() => setView('new-benefit')} className="btn-secondary text-xs">
-                  + Add Benefit
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => setView('bulk-benefit')} className="btn-secondary text-xs">
+                    Bulk Add
+                  </button>
+                  <button onClick={() => setView('new-benefit')} className="btn-secondary text-xs">
+                    + Add
+                  </button>
+                </div>
               </div>
 
               {selectedCard.benefits.length === 0 ? (
@@ -303,6 +321,18 @@ export default function AdminPage() {
                 setSelectedBenefit(null)
                 setView('card-detail')
               }}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
+
+        {/* Bulk Add Benefits Form */}
+        {view === 'bulk-benefit' && selectedCard && (
+          <div className="panel">
+            <h2 className="text-sm font-medium mb-4">Bulk Add Benefits to {selectedCard.name}</h2>
+            <BulkBenefitForm
+              onSubmit={handleBulkCreateBenefits}
+              onCancel={() => setView('card-detail')}
               isLoading={isLoading}
             />
           </div>

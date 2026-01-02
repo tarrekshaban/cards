@@ -153,6 +153,43 @@ async def create_benefit(
     return _parse_benefit(result.data[0])
 
 
+@router.post("/cards/{card_id}/benefits/bulk", response_model=list[Benefit], status_code=status.HTTP_201_CREATED)
+async def bulk_create_benefits(
+    card_id: str,
+    request: list[BenefitCreate],
+    current_user: Annotated[User, Depends(require_admin)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """Bulk add multiple benefits to a card at once."""
+    # Verify card exists
+    card_result = supabase.table("cards").select("id").eq("id", card_id).execute()
+    if not card_result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    
+    if not request:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No benefits provided")
+    
+    # Prepare all benefits for insertion
+    benefits_data = [
+        {
+            "card_id": card_id,
+            "name": b.name,
+            "description": b.description,
+            "value": float(b.value),
+            "schedule": b.schedule.value,
+        }
+        for b in request
+    ]
+    
+    # Batch insert
+    result = supabase.table("benefits").insert(benefits_data).execute()
+    
+    # Invalidate cache for this card
+    catalog_cache.invalidate(f"cards:{card_id}")
+    
+    return [_parse_benefit(row) for row in result.data]
+
+
 @router.put("/benefits/{benefit_id}", response_model=Benefit)
 async def update_benefit(
     benefit_id: str,

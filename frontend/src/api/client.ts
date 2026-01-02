@@ -304,6 +304,11 @@ export const adminApi = {
     return api.post<Benefit>(`/admin/cards/${cardId}/benefits`, data)
   },
 
+  // Bulk create benefits for a card
+  async bulkCreateBenefits(cardId: string, benefits: CreateBenefitRequest[]): Promise<Benefit[]> {
+    return api.post<Benefit[]>(`/admin/cards/${cardId}/benefits/bulk`, benefits)
+  },
+
   // Update a benefit
   async updateBenefit(benefitId: string, data: UpdateBenefitRequest): Promise<Benefit> {
     return api.put<Benefit>(`/admin/benefits/${benefitId}`, data)
