@@ -103,8 +103,8 @@ export default function RedeemModal({
             </div>
           </div>
 
-          {/* Presets */}
-          <div className="flex gap-1">
+          {/* Presets - Removed */}
+          {/* <div className="flex gap-1">
             {[0.25, 0.5, 0.75, 1].map((pct) => (
               <button
                 key={pct}
@@ -119,7 +119,7 @@ export default function RedeemModal({
                 {pct === 1 ? 'Full' : `${pct * 100}%`}
               </button>
             ))}
-          </div>
+          </div> */}
 
           {error && <p className="text-xs text-red-400">{error}</p>}
 

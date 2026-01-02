@@ -502,10 +502,12 @@ async def get_annual_summary(
         
         # Sum amount_redeemed per benefit for the year
         redemption_amounts: dict[str, Decimal] = {}
+        redemption_counts: dict[str, int] = {}
         for r in redemptions_result.data:
             bid = r["benefit_id"]
             amount = Decimal(str(r.get("amount_redeemed", 0)))
             redemption_amounts[bid] = redemption_amounts.get(bid, Decimal("0")) + amount
+            redemption_counts[bid] = redemption_counts.get(bid, 0) + 1
         
         for b_row in benefits_result.data:
             benefit = _parse_benefit(b_row)
@@ -535,8 +537,10 @@ async def get_annual_summary(
             
             # For redeemed_count, count how many periods have any redemption
             # (This is approximate - a partial redemption counts as 1)
-            if benefit.id in redemption_amounts or auto_redeem:
-                redeemed_count += 1 if not auto_redeem else yearly_count
+            if auto_redeem:
+                redeemed_count += yearly_count
+            else:
+                redeemed_count += redemption_counts.get(benefit.id, 0)
             total_count += yearly_count
     
     return AnnualSummary(
