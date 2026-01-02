@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 {summary.redeemed_count} of {summary.total_count} benefits
               </p>
               <p className="text-[9px] text-text-faint">
-                ${Number(summary.total_available).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} total
+                ${Number(summary.total_annual_fees).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} annual fees
               </p>
             </div>
           </div>

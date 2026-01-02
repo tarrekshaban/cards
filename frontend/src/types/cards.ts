@@ -16,6 +16,7 @@ export interface Card {
   issuer: string
   image_url?: string
   annual_fee?: number
+  benefits_count?: number
   created_at?: string
   updated_at?: string
 }
@@ -136,6 +137,7 @@ export interface AnnualSummary {
   outstanding: number
   redeemed_count: number
   total_count: number
+  total_annual_fees: number
 }
 
 export interface BenefitPreference {

@@ -159,7 +159,19 @@ async def list_cards(
         return cached
 
     result = supabase.table("cards").select("*").order("name").execute()
-    cards = [_parse_card(row) for row in result.data]
+    
+    # Get benefits count for each card
+    benefits_result = supabase.table("benefits").select("card_id").execute()
+    benefits_count_by_card: dict[str, int] = {}
+    for b in benefits_result.data:
+        card_id = b["card_id"]
+        benefits_count_by_card[card_id] = benefits_count_by_card.get(card_id, 0) + 1
+    
+    cards = []
+    for row in result.data:
+        card = _parse_card(row)
+        card.benefits_count = benefits_count_by_card.get(card.id, 0)
+        cards.append(card)
     
     catalog_cache.set(cache_key, cards)
     return cards
@@ -542,11 +554,13 @@ async def get_annual_summary(
     
     total_redeemed = Decimal("0")
     total_available = Decimal("0")
+    total_annual_fees = Decimal("0")
     redeemed_count = 0
     total_count = 0
-    
+
     for uc_row in user_cards_result.data:
         card = _parse_card(uc_row["cards"])
+        total_annual_fees += card.annual_fee
         user_card = _parse_user_card(uc_row, card)
         
         # Get benefits for this card
@@ -613,6 +627,7 @@ async def get_annual_summary(
         outstanding=total_available - total_redeemed,
         redeemed_count=redeemed_count,
         total_count=total_count,
+        total_annual_fees=total_annual_fees,
     )
 
 

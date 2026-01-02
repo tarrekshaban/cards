@@ -138,18 +138,28 @@ export default function MyCardsPage() {
                       : 'hover:border-text-muted hover:bg-surface-muted/50'
                   }`}
                 >
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-1">
-                    {uc.card.issuer}
-                  </p>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium leading-tight">
-                       {uc.nickname || uc.card.name}
-                    </span>
-                    {uc.nickname && (
-                       <span className="text-[10px] text-text-muted mt-0.5">
-                         {uc.card.name}
-                       </span>
-                    )}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-1">
+                        {uc.card.issuer}
+                      </p>
+                      <span className="text-sm font-medium leading-tight">
+                        {uc.nickname || uc.card.name}
+                      </span>
+                      {uc.nickname && (
+                        <p className="text-[10px] text-text-muted mt-0.5">
+                          {uc.card.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-mono text-text-muted">
+                        ${Number(uc.card.annual_fee || 0).toLocaleString()}
+                      </p>
+                      <p className="text-[9px] text-text-faint">
+                        {uc.benefits.length} benefit{uc.benefits.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}

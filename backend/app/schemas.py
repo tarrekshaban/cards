@@ -95,6 +95,7 @@ class Card(CardBase):
     id: str
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    benefits_count: int | None = None
 
 
 # Benefit Schemas
@@ -240,3 +241,4 @@ class AnnualSummary(BaseModel):
     outstanding: Decimal  # total_available - total_redeemed
     redeemed_count: int
     total_count: int
+    total_annual_fees: Decimal

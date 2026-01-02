@@ -179,10 +179,22 @@ export default function AdminPage() {
                   onClick={() => loadCardDetail(card.id)}
                   className="panel cursor-pointer hover:border-text-muted transition-colors"
                 >
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-0.5">
-                    {card.issuer}
-                  </p>
-                  <p className="text-sm font-medium">{card.name}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-0.5">
+                        {card.issuer}
+                      </p>
+                      <p className="text-sm font-medium">{card.name}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-mono text-text-muted">
+                        ${Number(card.annual_fee || 0).toLocaleString()}
+                      </p>
+                      <p className="text-[9px] text-text-faint">
+                        {card.benefits_count || 0} benefit{card.benefits_count !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))
             )}
