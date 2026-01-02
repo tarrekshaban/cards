@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { AvailableBenefit } from '../../types/cards'
+import BenefitDetailModal from './BenefitDetailModal'
 
 interface BenefitItemProps {
   benefit: AvailableBenefit
@@ -58,6 +60,7 @@ export default function BenefitItem({
   showCard = true,
 }: BenefitItemProps) {
   const { benefit: b, user_card, is_redeemed, resets_at, auto_redeem, hidden, amount_remaining, amount_redeemed } = benefit
+  const [showDetail, setShowDetail] = useState(false)
   
   // Check if this is a partial redemption (some redeemed, some remaining)
   const isPartiallyRedeemed = amount_redeemed > 0 && amount_remaining > 0
@@ -126,7 +129,12 @@ export default function BenefitItem({
             
             {/* Name & Metadata */}
             <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-0">
-              <span className="text-sm text-text-muted">{b.name}</span>
+              <button 
+                onClick={() => setShowDetail(true)}
+                className="text-sm text-text-muted hover:text-text hover:underline transition-colors text-left"
+              >
+                {b.name}
+              </button>
               {/* Schedule Tag - Desktop Only (in metadata row) */}
               <span className="hidden md:inline-flex text-[9px] px-1.5 py-0.5 border border-border text-text-faint uppercase tracking-wider rounded-sm shrink-0">
                 {formatSchedule(b.schedule)}
@@ -194,6 +202,14 @@ export default function BenefitItem({
           </button>
         </div>
       </div>
+
+      {/* Benefit Detail Modal */}
+      {showDetail && (
+        <BenefitDetailModal
+          benefit={benefit}
+          onClose={() => setShowDetail(false)}
+        />
+      )}
     </div>
   )
 }
