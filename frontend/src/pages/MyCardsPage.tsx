@@ -69,7 +69,7 @@ export default function MyCardsPage() {
     setIsSaving(true)
     try {
       const updated = await userCardsApi.updateUserCard(userCardId, {
-        nickname: nickname || undefined,
+        nickname: nickname,
         card_open_date: cardOpenDate,
       })
       // Update local state
