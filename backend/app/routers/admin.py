@@ -63,6 +63,7 @@ async def create_card(
         "name": request.name,
         "issuer": request.issuer,
         "image_url": request.image_url,
+        "annual_fee": float(request.annual_fee),
     }).execute()
     
     # Invalidate cache
