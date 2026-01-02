@@ -16,6 +16,7 @@ from ..schemas import (
     Benefit,
     UserCard,
     UserCardCreate,
+    UserCardUpdate,
     UserCardWithBenefits,
     AvailableBenefit,
     BenefitRedemption,
@@ -286,6 +287,41 @@ async def add_user_card(
     return _parse_user_card(result.data[0], card)
 
 
+@router.put("/user/cards/{user_card_id}", response_model=UserCard)
+async def update_user_card(
+    user_card_id: str,
+    request: UserCardUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """Update a user's card details."""
+    # Verify ownership
+    uc_result = supabase.table("user_cards").select("*, cards(*)").eq("id", user_card_id).eq("user_id", current_user.id).execute()
+    if not uc_result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found in your profile")
+    
+    uc_row = uc_result.data[0]
+    
+    # Build update data
+    update_data = {}
+    if request.card_open_date is not None:
+        update_data["card_open_date"] = request.card_open_date.isoformat()
+    if request.nickname is not None:
+        # Allow empty string to clear nickname, but trim it
+        nickname = request.nickname.strip()
+        update_data["nickname"] = nickname if nickname else None
+    
+    if not update_data:
+        card = _parse_card(uc_row["cards"])
+        return _parse_user_card(uc_row, card)
+        
+    result = supabase.table("user_cards").update(update_data).eq("id", user_card_id).execute()
+    
+    # Return updated object
+    card = _parse_card(uc_row["cards"])
+    return _parse_user_card(result.data[0], card)
+
+
 @router.delete("/user/cards/{user_card_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_user_card(
     user_card_id: str,
@@ -305,6 +341,9 @@ async def remove_user_card(
 # Available Benefits (Dashboard)
 # ============================================================
 
+import time
+import json
+
 @router.get("/user/benefits/available", response_model=list[AvailableBenefit])
 async def list_available_benefits(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -312,38 +351,64 @@ async def list_available_benefits(
     show_hidden: bool = Query(default=False, description="Include hidden benefits"),
 ):
     """List all unredeemed benefits across all user's cards (for dashboard)."""
+    start_time = time.time()
+
     # Get user's cards
     user_cards_result = supabase.table("user_cards").select("*, cards(*)").eq("user_id", current_user.id).execute()
     
+    if not user_cards_result.data:
+        return []
+
+    # Batch fetch all related data
+    
+    # Extract IDs for batch queries
+    card_ids = [row["cards"]["id"] for row in user_cards_result.data]
+    user_card_ids = [row["id"] for row in user_cards_result.data]
+
+    # Fetch all benefits for these cards
+    all_benefits_result = supabase.table("benefits").select("*").in_("card_id", card_ids).execute()
+    
+    # Fetch all redemptions for these user cards
+    all_redemptions_result = supabase.table("benefit_redemptions").select("*").in_("user_card_id", user_card_ids).execute()
+    
+    # Fetch all preferences for these user cards
+    all_prefs_result = supabase.table("user_benefit_preferences").select("*").in_("user_card_id", user_card_ids).execute()
+
+    # Organize data for lookups
+    benefits_by_card_id: dict[str, list[dict]] = {}
+    for b in all_benefits_result.data:
+        cid = b["card_id"]
+        if cid not in benefits_by_card_id:
+            benefits_by_card_id[cid] = []
+        benefits_by_card_id[cid].append(b)
+
+    redemptions_lookup: dict[str, list[dict]] = {}
+    for r in all_redemptions_result.data:
+        key = f"{r['user_card_id']}_{r['benefit_id']}"
+        if key not in redemptions_lookup:
+            redemptions_lookup[key] = []
+        redemptions_lookup[key].append(r)
+
+    prefs_lookup: dict[str, dict] = {}
+    for p in all_prefs_result.data:
+        key = f"{p['user_card_id']}_{p['benefit_id']}"
+        prefs_lookup[key] = p
+
     available = []
     for uc_row in user_cards_result.data:
         card = _parse_card(uc_row["cards"])
         user_card = _parse_user_card(uc_row, card)
         
-        # Get benefits
-        benefits_result = supabase.table("benefits").select("*").eq("card_id", card.id).execute()
+        # Get benefits from local lookup
+        card_benefits = benefits_by_card_id.get(card.id, [])
         
-        # Get redemptions
-        redemptions_result = supabase.table("benefit_redemptions").select("*").eq("user_card_id", user_card.id).execute()
-        redemptions_by_benefit: dict[str, list[dict]] = {}
-        for r in redemptions_result.data:
-            bid = r["benefit_id"]
-            if bid not in redemptions_by_benefit:
-                redemptions_by_benefit[bid] = []
-            redemptions_by_benefit[bid].append(r)
-        
-        # Get user preferences for this user_card
-        prefs_result = supabase.table("user_benefit_preferences").select("*").eq("user_card_id", user_card.id).execute()
-        prefs_by_benefit: dict[str, dict] = {}
-        for p in prefs_result.data:
-            prefs_by_benefit[p["benefit_id"]] = p
-        
-        for b_row in benefits_result.data:
+        for b_row in card_benefits:
             benefit = _parse_benefit(b_row)
             period = _calculate_current_period(benefit.schedule, user_card.card_open_date)
             
-            # Get preferences for this benefit
-            pref = prefs_by_benefit.get(benefit.id, {})
+            # Get preferences from local lookup
+            pref_key = f"{user_card.id}_{benefit.id}"
+            pref = prefs_lookup.get(pref_key, {})
             auto_redeem = pref.get("auto_redeem", False)
             hidden = pref.get("hidden", False)
             
@@ -351,27 +416,30 @@ async def list_available_benefits(
             if hidden and not show_hidden:
                 continue
             
+            # Get redemptions from local lookup
+            redemptions_key = f"{user_card.id}_{benefit.id}"
+            benefit_redemptions = redemptions_lookup.get(redemptions_key, [])
+            
             # Calculate amount redeemed in current period
             amount_redeemed = Decimal("0")
-            if benefit.id in redemptions_by_benefit:
-                for r in redemptions_by_benefit[benefit.id]:
-                    # Check if this redemption is for the current period
-                    is_current_period = False
-                    if benefit.schedule == BenefitSchedule.one_time:
+            for r in benefit_redemptions:
+                # Check if this redemption is for the current period
+                is_current_period = False
+                if benefit.schedule == BenefitSchedule.one_time:
+                    is_current_period = True
+                elif r["period_year"] == period[0]:
+                    if period[1] is not None and r.get("period_month") == period[1]:
                         is_current_period = True
-                    elif r["period_year"] == period[0]:
-                        if period[1] is not None and r.get("period_month") == period[1]:
-                            is_current_period = True
-                        elif period[2] is not None and r.get("period_quarter") == period[2]:
-                            is_current_period = True
-                        elif period[3] is not None and r.get("period_half") == period[3]:
-                            is_current_period = True
-                        elif period[1] is None and period[2] is None and period[3] is None:
-                            is_current_period = True
-                    
-                    if is_current_period:
-                        amount_redeemed = Decimal(str(r.get("amount_redeemed", 0)))
-                        break
+                    elif period[2] is not None and r.get("period_quarter") == period[2]:
+                        is_current_period = True
+                    elif period[3] is not None and r.get("period_half") == period[3]:
+                        is_current_period = True
+                    elif period[1] is None and period[2] is None and period[3] is None:
+                        is_current_period = True
+                
+                if is_current_period:
+                    amount_redeemed = Decimal(str(r.get("amount_redeemed", 0)))
+                    break
             
             # Calculate remaining amount
             amount_remaining = benefit.value - amount_redeemed

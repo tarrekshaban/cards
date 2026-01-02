@@ -224,6 +224,7 @@ import type {
   CreateBenefitRequest,
   UpdateBenefitRequest,
   AddUserCardRequest,
+  UpdateUserCardRequest,
   BenefitPreference,
   UpdateBenefitPreferenceRequest,
   RedeemBenefitRequest,
@@ -252,6 +253,11 @@ export const userCardsApi = {
   // Add a card to user's profile
   async addUserCard(data: AddUserCardRequest): Promise<UserCard> {
     return api.post<UserCard>('/user/cards', data)
+  },
+
+  // Update a user's card
+  async updateUserCard(userCardId: string, data: UpdateUserCardRequest): Promise<UserCard> {
+    return api.put<UserCard>(`/user/cards/${userCardId}`, data)
   },
 
   // Remove a card from user's profile

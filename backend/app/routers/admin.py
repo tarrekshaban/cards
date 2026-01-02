@@ -92,6 +92,8 @@ async def update_card(
         update_data["issuer"] = request.issuer
     if request.image_url is not None:
         update_data["image_url"] = request.image_url
+    if request.annual_fee is not None:
+        update_data["annual_fee"] = float(request.annual_fee)
     
     if not update_data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")

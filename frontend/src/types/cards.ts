@@ -124,6 +124,11 @@ export interface AddUserCardRequest {
   nickname?: string
 }
 
+export interface UpdateUserCardRequest {
+  card_open_date?: string
+  nickname?: string
+}
+
 export interface AnnualSummary {
   year: number
   total_redeemed: number

@@ -79,6 +79,26 @@ export default function DashboardPage() {
     }
   }
 
+  // Group benefits by card
+  const groupedBenefits = benefits.reduce((acc, benefit) => {
+    const cardId = benefit.user_card.id
+    if (!acc[cardId]) {
+      acc[cardId] = {
+        userCard: benefit.user_card,
+        benefits: []
+      }
+    }
+    acc[cardId].benefits.push(benefit)
+    return acc
+  }, {} as Record<string, { userCard: typeof benefits[0]['user_card'], benefits: typeof benefits }>)
+
+  // Sort groups by card name
+  const sortedGroups = Object.values(groupedBenefits).sort((a, b) => {
+    const nameA = a.userCard.nickname || a.userCard.card.name
+    const nameB = b.userCard.nickname || b.userCard.card.name
+    return nameA.localeCompare(nameB)
+  })
+
   if (isLoading) {
     return (
       <Layout>
@@ -153,16 +173,40 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* Benefits List */}
-            <div className="space-y-2">
-              {benefits.map((benefit) => (
-                <BenefitItem
-                  key={`${benefit.user_card.id}-${benefit.benefit.id}`}
-                  benefit={benefit}
-                  onRedeem={() => handleOpenRedeemModal(benefit)}
-                  onUnredeem={() => {}} // Not used on dashboard
-                  onUpdatePreferences={(autoRedeem, hidden) => handleUpdatePreferences(benefit, autoRedeem, hidden)}
-                  showCard={true}
-                />
+            <div className="space-y-6">
+              {sortedGroups.map((group) => (
+                <div key={group.userCard.id} className="space-y-2">
+                  <div className="flex items-baseline gap-2 px-1">
+                    <h2 className="text-sm font-medium text-text-muted">
+                      {group.userCard.card.name}
+                    </h2>
+                    {group.userCard.nickname && (
+                      <span className="text-xs text-text-faint">
+                        {group.userCard.nickname}
+                      </span>
+                    )}
+                    <div className="ml-auto text-xs font-mono text-text-muted">
+                      ${group.benefits.reduce((sum, b) => {
+                        // Use amount_remaining if present (partial/full redemption logic handled by backend)
+                        // If auto-redeem is on, backend sets amount_remaining to 0, so this works.
+                        const val = b.amount_remaining !== undefined ? b.amount_remaining : b.benefit.value
+                        return sum + Number(val)
+                      }, 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {group.benefits.map((benefit) => (
+                      <BenefitItem
+                        key={`${benefit.user_card.id}-${benefit.benefit.id}`}
+                        benefit={benefit}
+                        onRedeem={() => handleOpenRedeemModal(benefit)}
+                        onUnredeem={() => {}} // Not used on dashboard
+                        onUpdatePreferences={(autoRedeem, hidden) => handleUpdatePreferences(benefit, autoRedeem, hidden)}
+                        showCard={false}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
 

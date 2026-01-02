@@ -140,6 +140,12 @@ class UserCardCreate(BaseModel):
     nickname: str | None = None
 
 
+class UserCardUpdate(BaseModel):
+    """Request to update a user's card."""
+    card_open_date: date | None = None
+    nickname: str | None = None
+
+
 class UserCard(BaseModel):
     """User's card response model."""
     id: str
