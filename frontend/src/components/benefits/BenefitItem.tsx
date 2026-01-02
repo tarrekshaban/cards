@@ -90,47 +90,72 @@ export default function BenefitItem({
   }
 
   return (
-    <div className={`panel group transition-opacity duration-200 ${hidden ? 'opacity-50 hover:opacity-100' : ''}`}>
+    <div className={`panel group transition-opacity duration-200 relative ${hidden ? 'opacity-50 hover:opacity-100' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {isPartiallyRedeemed ? (
-              <>
-                <span className="text-sm font-medium">${Number(amount_remaining)}</span>
-                <span className="text-[10px] text-text-faint">of ${Number(b.value)}</span>
-              </>
-            ) : (
-              <span className="text-sm font-medium">${Number(b.value)}</span>
-            )}
-            <span className="text-sm text-text-muted">{b.name}</span>
-            <span className="text-[9px] px-1 py-0.5 border border-border text-text-faint shrink-0">
-              {formatSchedule(b.schedule)}
-            </span>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono font-medium text-[15px] tracking-tight">
+                ${Number(isPartiallyRedeemed ? amount_remaining : b.value)}
+              </span>
+              {isPartiallyRedeemed && (
+                <span className="text-[10px] text-text-faint font-mono">
+                  / ${Number(b.value)}
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-text-muted">{b.name}</span>
+              <span className="text-[9px] px-1.5 py-0.5 border border-border text-text-faint uppercase tracking-wider rounded-sm">
+                {formatSchedule(b.schedule)}
+              </span>
+            </div>
+
             {auto_redeem && (
-              <span className="text-[9px] px-1 py-0.5 border border-primary/20 bg-primary/5 text-primary shrink-0 flex items-center gap-1">
+              <span className="text-[9px] px-1.5 py-0.5 border border-primary/20 bg-primary/5 text-primary shrink-0 flex items-center gap-1 rounded-sm uppercase tracking-wider">
                 <IconRepeat /> Auto
               </span>
             )}
             {hidden && (
-              <span className="text-[9px] px-1 py-0.5 border border-border bg-surface-muted text-text-muted shrink-0 flex items-center gap-1">
+              <span className="text-[9px] px-1.5 py-0.5 border border-border bg-surface-muted text-text-muted shrink-0 flex items-center gap-1 rounded-sm uppercase tracking-wider">
                 <IconEyeOff /> Hidden
               </span>
             )}
           </div>
+          
           {showCard && (
-            <p className="text-[10px] text-text-faint mt-1">
-              {user_card.nickname ? `${user_card.nickname} (${user_card.card.name})` : user_card.card.name}
-              {resets_at && ` · Resets ${formatResetDate(resets_at)}`}
-            </p>
+            <div className="mt-1.5 flex items-center gap-2 text-[10px] text-text-faint">
+               <span className="font-medium text-text-muted/70">
+                {user_card.nickname ? `${user_card.nickname} (${user_card.card.name})` : user_card.card.name}
+              </span>
+              {resets_at && (
+                <>
+                  <span>·</span>
+                  <span>Resets {formatResetDate(resets_at)}</span>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Progress Bar for Partial Redemption */}
+          {isPartiallyRedeemed && (
+            <div className="mt-2 h-1 w-full max-w-[200px] bg-surface-muted border border-border overflow-hidden rounded-full">
+              <div 
+                className="h-full bg-primary/40" 
+                style={{ width: `${(amount_redeemed / b.value) * 100}%` }}
+              />
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+
+        <div className="flex items-center gap-2 shrink-0 self-start">
           {/* Options Menu */}
           {onUpdatePreferences && (
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className={`flex items-center justify-center w-6 h-6 rounded hover:bg-surface-muted text-text-muted hover:text-text transition-colors ${menuOpen ? 'bg-surface-muted text-text' : ''}`}
+                className={`flex items-center justify-center w-7 h-7 rounded hover:bg-surface-muted text-text-muted hover:text-text transition-colors ${menuOpen ? 'bg-surface-muted text-text' : ''}`}
                 title="Options"
               >
                 <IconMore />
@@ -141,7 +166,7 @@ export default function BenefitItem({
                     className="fixed inset-0 z-10"
                     onClick={() => setMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1 z-20 bg-surface-raised border border-border shadow-xl min-w-[180px] p-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                  <div className="absolute right-0 top-full mt-1 z-20 bg-surface-raised border border-border shadow-xl min-w-[180px] p-1 animate-in fade-in zoom-in-95 duration-100 origin-top-right rounded-sm">
                     <button
                       onClick={handleToggleAutoRedeem}
                       className="w-full flex items-center justify-between px-3 py-2 text-[11px] hover:bg-surface-muted transition-colors group rounded-sm"
@@ -171,10 +196,10 @@ export default function BenefitItem({
           <button
             onClick={is_redeemed ? onUnredeem : onRedeem}
             disabled={isLoading}
-            className={`text-xs px-3 py-1.5 transition-colors font-medium border ${
+            className={`text-[10px] tracking-wider font-medium px-3 py-1.5 transition-colors border ${
               is_redeemed
                 ? 'border-green-900/30 bg-green-950/10 text-green-500 hover:bg-green-950/20'
-                : 'btn-primary border-transparent'
+                : 'btn-primary border-transparent shadow-sm'
             } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isLoading ? '...' : is_redeemed ? 'REDEEMED' : 'REDEEM'}
