@@ -31,12 +31,10 @@ function formatDate(dateStr: string | null): string {
 }
 
 export default function BenefitDetailModal({ benefit, onClose }: BenefitDetailModalProps) {
-  const { benefit: b, user_card, is_redeemed, resets_at, auto_redeem, hidden, amount_redeemed, amount_remaining } = benefit
+  const { benefit: b, user_card, is_redeemed, resets_at, auto_redeem, hidden, amount_remaining } = benefit
   
   const totalValue = Number(b.value)
-  const redeemed = Number(amount_redeemed)
   const remaining = Number(amount_remaining)
-  const percentRedeemed = totalValue > 0 ? (redeemed / totalValue) * 100 : 0
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">

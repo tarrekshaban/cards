@@ -17,7 +17,11 @@ from ..schemas import (
     Benefit,
     BenefitCreate,
     BenefitUpdate,
+    AccessCode,
+    AccessCodeCreate,
 )
+import secrets
+import string
 
 router = APIRouter()
 
@@ -270,3 +274,84 @@ async def get_card_with_benefits(
     benefits = [_parse_benefit(row) for row in benefits_result.data]
     
     return CardWithBenefits(**card.model_dump(), benefits=benefits)
+
+
+# ============================================================
+# Access Code Management
+# ============================================================
+
+def _generate_access_code() -> str:
+    """Generate a random 8-character access code."""
+    alphabet = string.ascii_uppercase + string.digits
+    # Remove ambiguous characters
+    alphabet = alphabet.replace('O', '').replace('0', '').replace('I', '').replace('1', '').replace('L', '')
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
+
+
+def _parse_access_code(row: dict) -> AccessCode:
+    """Parse an access code row from Supabase."""
+    return AccessCode(
+        id=row["id"],
+        code=row["code"],
+        created_at=row.get("created_at"),
+        created_by=row.get("created_by"),
+        used_at=row.get("used_at"),
+        used_by=row.get("used_by"),
+        invalidated_at=row.get("invalidated_at"),
+        notes=row.get("notes"),
+    )
+
+
+@router.get("/access-codes", response_model=list[AccessCode])
+async def list_access_codes(
+    current_user: Annotated[User, Depends(require_admin)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """List all access codes."""
+    result = supabase.table("access_codes").select("*").order("created_at", desc=True).execute()
+    return [_parse_access_code(row) for row in result.data]
+
+
+@router.post("/access-codes", response_model=AccessCode, status_code=status.HTTP_201_CREATED)
+async def create_access_code(
+    request: AccessCodeCreate,
+    current_user: Annotated[User, Depends(require_admin)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """Generate a new access code."""
+    # Generate unique code
+    max_attempts = 10
+    for _ in range(max_attempts):
+        code = _generate_access_code()
+        # Check if code already exists
+        existing = supabase.table("access_codes").select("id").eq("code", code).execute()
+        if not existing.data:
+            break
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate unique code")
+    
+    result = supabase.table("access_codes").insert({
+        "code": code,
+        "created_by": current_user.id,
+        "notes": request.notes,
+    }).execute()
+    
+    return _parse_access_code(result.data[0])
+
+
+@router.delete("/access-codes/{code_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def invalidate_access_code(
+    code_id: str,
+    current_user: Annotated[User, Depends(require_admin)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """Invalidate an access code (soft delete)."""
+    # Check if code exists
+    existing = supabase.table("access_codes").select("id").eq("id", code_id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Access code not found")
+    
+    # Soft delete by setting invalidated_at
+    supabase.table("access_codes").update({
+        "invalidated_at": "now()",
+    }).eq("id", code_id).execute()

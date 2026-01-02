@@ -24,18 +24,40 @@ router = APIRouter()
 async def signup(
     request: SignUpRequest,
     supabase: Annotated[Client, Depends(get_supabase_client)],
+    admin_client: Annotated[Client, Depends(get_supabase_admin_client)],
     settings: Annotated[Settings, Depends(get_settings)],
 ):
     """
     Create a new user account with email and password.
     
     Returns access and refresh tokens on successful signup.
+    Requires a valid access code.
     """
-    # Check email whitelist
-    if not settings.is_email_allowed(request.email):
+    # Validate access code
+    access_code_result = admin_client.table("access_codes").select("*").eq(
+        "code", request.access_code.upper().strip()
+    ).execute()
+    
+    if not access_code_result.data:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This email is not authorized to create an account",
+            detail="Invalid access code",
+        )
+    
+    access_code_row = access_code_result.data[0]
+    
+    # Check if code is already used
+    if access_code_row.get("used_at"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This access code has already been used",
+        )
+    
+    # Check if code is invalidated
+    if access_code_row.get("invalidated_at"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This access code is no longer valid",
         )
     
     # Validate password
@@ -56,6 +78,12 @@ async def signup(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to create user account",
             )
+        
+        # Mark access code as used
+        admin_client.table("access_codes").update({
+            "used_at": "now()",
+            "used_by": response.user.id,
+        }).eq("id", access_code_row["id"]).execute()
         
         if response.session is None:
             # Email confirmation required

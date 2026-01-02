@@ -25,7 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isAdmin: boolean
   login: (email: string, password: string) => Promise<void>
-  signup: (email: string, password: string) => Promise<void>
+  signup: (email: string, password: string, accessCode: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -77,8 +77,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [refreshUser])
 
   // Signup
-  const signup = useCallback(async (email: string, password: string) => {
-    const response = await authApi.signup(email, password)
+  const signup = useCallback(async (email: string, password: string, accessCode: string) => {
+    const response = await authApi.signup(email, password, accessCode)
     if (response.access_token && response.user.email_confirmed) {
       // Refresh user to get full user data including is_admin
       await refreshUser()

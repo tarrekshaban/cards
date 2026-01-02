@@ -1,20 +1,31 @@
 import { useState, FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function SignupPage() {
+  const [accessCode, setAccessCode] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const { signup } = useAuth()
+  const { signup, user, isLoading } = useAuth()
   const navigate = useNavigate()
+
+  // Redirect to dashboard if already logged in
+  if (!isLoading && user) {
+    return <Navigate to="/dashboard" replace />
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!accessCode.trim()) {
+      setError('Access code is required')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -29,7 +40,7 @@ export default function SignupPage() {
     setIsSubmitting(true)
 
     try {
-      await signup(email, password)
+      await signup(email, password, accessCode.trim())
       navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
@@ -56,6 +67,25 @@ export default function SignupPage() {
           )}
 
           <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="accessCode" className="block text-xs text-text-muted">
+                Access Code
+              </label>
+              <input
+                id="accessCode"
+                name="accessCode"
+                type="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                required
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                className="input font-mono tracking-wider"
+                placeholder="Enter access code"
+                maxLength={8}
+              />
+            </div>
+
             <div className="space-y-1.5">
               <label htmlFor="email" className="block text-xs text-text-muted">
                 Email

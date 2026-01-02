@@ -141,10 +141,10 @@ export const authApi = {
     return response
   },
 
-  async signup(email: string, password: string): Promise<AuthTokens> {
+  async signup(email: string, password: string, accessCode: string): Promise<AuthTokens> {
     const response = await apiRequest<AuthTokens>('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, access_code: accessCode }),
     })
     if (response.access_token) {
       setTokens(response)
@@ -228,6 +228,8 @@ import type {
   BenefitPreference,
   UpdateBenefitPreferenceRequest,
   RedeemBenefitRequest,
+  AccessCode,
+  CreateAccessCodeRequest,
 } from '../types/cards'
 
 // Card Catalog API
@@ -349,5 +351,18 @@ export const adminApi = {
   // Delete a benefit
   async deleteBenefit(benefitId: string): Promise<void> {
     return api.delete(`/admin/benefits/${benefitId}`)
+  },
+
+  // Access Codes
+  async getAccessCodes(): Promise<AccessCode[]> {
+    return api.get<AccessCode[]>('/admin/access-codes')
+  },
+
+  async createAccessCode(data: CreateAccessCodeRequest): Promise<AccessCode> {
+    return api.post<AccessCode>('/admin/access-codes', data)
+  },
+
+  async invalidateAccessCode(codeId: string): Promise<void> {
+    return api.delete(`/admin/access-codes/${codeId}`)
   },
 }

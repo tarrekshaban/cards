@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr
 class SignUpRequest(BaseModel):
     email: EmailStr
     password: str
+    access_code: str
 
 
 class LoginRequest(BaseModel):
@@ -242,3 +243,25 @@ class AnnualSummary(BaseModel):
     redeemed_count: int
     total_count: int
     total_annual_fees: Decimal
+
+
+# Access Code Schemas
+class AccessCodeCreate(BaseModel):
+    """Request to create an access code."""
+    notes: str | None = None
+
+
+class AccessCode(BaseModel):
+    """Access code response model."""
+    id: str
+    code: str
+    created_at: datetime | None = None
+    created_by: str | None = None
+    used_at: datetime | None = None
+    used_by: str | None = None
+    invalidated_at: datetime | None = None
+    notes: str | None = None
+    
+    @property
+    def is_valid(self) -> bool:
+        return self.used_at is None and self.invalidated_at is None

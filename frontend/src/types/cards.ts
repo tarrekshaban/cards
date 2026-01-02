@@ -140,6 +140,22 @@ export interface AnnualSummary {
   total_annual_fees: number
 }
 
+// Access Codes
+export interface AccessCode {
+  id: string
+  code: string
+  created_at?: string
+  created_by?: string
+  used_at?: string
+  used_by?: string
+  invalidated_at?: string
+  notes?: string
+}
+
+export interface CreateAccessCodeRequest {
+  notes?: string
+}
+
 export interface BenefitPreference {
   id: string
   user_card_id: string
