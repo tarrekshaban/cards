@@ -168,6 +168,7 @@ export const authApi = {
     created_at: string
     updated_at: string | null
     user_metadata: Record<string, unknown>
+    is_admin: boolean
   }> {
     return apiRequest('/auth/me')
   },
@@ -204,5 +205,112 @@ export const api = {
     return apiRequest<T>(endpoint, {
       method: 'DELETE',
     })
+  },
+}
+
+// Import card types
+import type {
+  Card,
+  CardWithBenefits,
+  Benefit,
+  UserCard,
+  UserCardWithBenefits,
+  AvailableBenefit,
+  BenefitRedemption,
+  CardSummary,
+  CreateCardRequest,
+  UpdateCardRequest,
+  CreateBenefitRequest,
+  UpdateBenefitRequest,
+  AddUserCardRequest,
+} from '../types/cards'
+
+// Card Catalog API
+export const cardsApi = {
+  // Get all cards in catalog
+  async getCards(): Promise<Card[]> {
+    return api.get<Card[]>('/cards')
+  },
+
+  // Get a single card with benefits
+  async getCard(cardId: string): Promise<CardWithBenefits> {
+    return api.get<CardWithBenefits>(`/cards/${cardId}`)
+  },
+}
+
+// User Cards API
+export const userCardsApi = {
+  // Get user's cards with benefits and redemption status
+  async getUserCards(): Promise<UserCardWithBenefits[]> {
+    return api.get<UserCardWithBenefits[]>('/user/cards')
+  },
+
+  // Add a card to user's profile
+  async addUserCard(data: AddUserCardRequest): Promise<UserCard> {
+    return api.post<UserCard>('/user/cards', data)
+  },
+
+  // Remove a card from user's profile
+  async removeUserCard(userCardId: string): Promise<void> {
+    return api.delete(`/user/cards/${userCardId}`)
+  },
+
+  // Get available (unredeemed) benefits for dashboard
+  async getAvailableBenefits(): Promise<AvailableBenefit[]> {
+    return api.get<AvailableBenefit[]>('/user/benefits/available')
+  },
+
+  // Get yearly summary for a card
+  async getCardSummary(userCardId: string, year?: number): Promise<CardSummary> {
+    const params = year ? `?year=${year}` : ''
+    return api.get<CardSummary>(`/user/cards/${userCardId}/summary${params}`)
+  },
+
+  // Redeem a benefit
+  async redeemBenefit(userCardId: string, benefitId: string): Promise<BenefitRedemption> {
+    return api.post<BenefitRedemption>(`/user/cards/${userCardId}/benefits/${benefitId}/redeem`)
+  },
+
+  // Unredeem a benefit
+  async unredeemBenefit(userCardId: string, benefitId: string): Promise<void> {
+    return api.delete(`/user/cards/${userCardId}/benefits/${benefitId}/redeem`)
+  },
+}
+
+// Admin API
+export const adminApi = {
+  // Create a new card
+  async createCard(data: CreateCardRequest): Promise<Card> {
+    return api.post<Card>('/admin/cards', data)
+  },
+
+  // Update a card
+  async updateCard(cardId: string, data: UpdateCardRequest): Promise<Card> {
+    return api.put<Card>(`/admin/cards/${cardId}`, data)
+  },
+
+  // Delete a card
+  async deleteCard(cardId: string): Promise<void> {
+    return api.delete(`/admin/cards/${cardId}`)
+  },
+
+  // Get a card with benefits (admin view)
+  async getCardWithBenefits(cardId: string): Promise<CardWithBenefits> {
+    return api.get<CardWithBenefits>(`/admin/cards/${cardId}`)
+  },
+
+  // Create a benefit for a card
+  async createBenefit(cardId: string, data: CreateBenefitRequest): Promise<Benefit> {
+    return api.post<Benefit>(`/admin/cards/${cardId}/benefits`, data)
+  },
+
+  // Update a benefit
+  async updateBenefit(benefitId: string, data: UpdateBenefitRequest): Promise<Benefit> {
+    return api.put<Benefit>(`/admin/benefits/${benefitId}`, data)
+  },
+
+  // Delete a benefit
+  async deleteBenefit(benefitId: string): Promise<void> {
+    return api.delete(`/admin/benefits/${benefitId}`)
   },
 }

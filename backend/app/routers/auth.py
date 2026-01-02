@@ -6,7 +6,7 @@ from supabase import Client
 from gotrue.types import User
 
 from ..config import Settings, get_settings
-from ..dependencies import get_supabase_client, get_supabase_admin_client, get_current_user
+from ..dependencies import get_supabase_client, get_supabase_admin_client, get_current_user, is_user_admin
 from ..schemas import (
     SignUpRequest,
     LoginRequest,
@@ -221,4 +221,5 @@ async def get_me(
         created_at=str(current_user.created_at),
         updated_at=str(current_user.updated_at) if current_user.updated_at else None,
         user_metadata=current_user.user_metadata or {},
+        is_admin=is_user_admin(current_user),
     )

@@ -13,6 +13,12 @@ from .config import Settings, get_settings
 security = HTTPBearer()
 
 
+def is_user_admin(user: User) -> bool:
+    """Check if a user has admin privileges."""
+    user_metadata = user.user_metadata or {}
+    return user_metadata.get("is_admin", False) is True
+
+
 @lru_cache
 def _get_supabase_client(url: str, key: str) -> Client:
     """Create and cache a Supabase client instance."""
@@ -66,3 +72,19 @@ async def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         ) from e
+
+
+async def require_admin(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """
+    Require the current user to have admin privileges.
+    
+    Use this as a dependency for admin-only endpoints.
+    """
+    if not is_user_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user

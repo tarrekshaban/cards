@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from .config import get_settings
-from .routers import auth
+from .routers import auth, cards, admin
 
 # Get settings
 settings = get_settings()
@@ -32,6 +32,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(cards.router, prefix="/api", tags=["cards"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 # Path to frontend build directory
 FRONTEND_BUILD_DIR = Path(__file__).parent.parent.parent / "frontend" / "dist"

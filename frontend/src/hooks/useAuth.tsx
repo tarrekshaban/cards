@@ -15,6 +15,7 @@ export interface User {
   created_at: string
   updated_at: string | null
   user_metadata: Record<string, unknown>
+  is_admin: boolean
 }
 
 // Auth context type
@@ -22,6 +23,7 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
@@ -69,32 +71,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Login
   const login = useCallback(async (email: string, password: string) => {
-    const response = await authApi.login(email, password)
-    setUser({
-      id: response.user.id,
-      email: response.user.email,
-      created_at: response.user.created_at,
-      updated_at: null,
-      user_metadata: {},
-    })
-  }, [])
+    await authApi.login(email, password)
+    // Refresh user to get full user data including is_admin
+    await refreshUser()
+  }, [refreshUser])
 
   // Signup
   const signup = useCallback(async (email: string, password: string) => {
     const response = await authApi.signup(email, password)
     if (response.access_token && response.user.email_confirmed) {
-      setUser({
-        id: response.user.id,
-        email: response.user.email,
-        created_at: response.user.created_at,
-        updated_at: null,
-        user_metadata: {},
-      })
+      // Refresh user to get full user data including is_admin
+      await refreshUser()
     } else if (!response.user.email_confirmed) {
       // Email confirmation required
       throw new Error('Please check your email to confirm your account')
     }
-  }, [])
+  }, [refreshUser])
 
   // Logout
   const logout = useCallback(async () => {
@@ -109,6 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     isLoading,
     isAuthenticated: !!user,
+    isAdmin: user?.is_admin ?? false,
     login,
     signup,
     logout,
