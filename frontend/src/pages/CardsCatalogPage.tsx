@@ -41,10 +41,10 @@ export default function CardsCatalogPage() {
     }
   }
 
-  const handleAddCard = async (cardId: string, cardOpenDate: string) => {
+  const handleAddCard = async (cardId: string, cardOpenDate: string, nickname?: string) => {
     setIsAdding(true)
     try {
-      await userCardsApi.addUserCard({ card_id: cardId, card_open_date: cardOpenDate })
+      await userCardsApi.addUserCard({ card_id: cardId, card_open_date: cardOpenDate, nickname })
       setUserCardIds((prev) => new Set([...prev, cardId]))
       setSelectedCard(null)
     } finally {
@@ -52,8 +52,18 @@ export default function CardsCatalogPage() {
     }
   }
 
-  const availableCards = cards.filter((c) => !userCardIds.has(c.id))
-  const ownedCards = cards.filter((c) => userCardIds.has(c.id))
+  // Allow adding multiple cards: don't filter out owned cards from the main list
+  // But we might want to indicate which ones are already owned.
+  // For now, let's just show all cards in one list to simplify "adding another one"
+  const sortedCards = [...cards].sort((a, b) => {
+    const aOwned = userCardIds.has(a.id)
+    const bOwned = userCardIds.has(b.id)
+    if (aOwned === bOwned) return 0
+    return aOwned ? 1 : -1 // Move owned to bottom? Or keep alphabetical?
+  })
+  
+  // Actually, keeping the split is confusing if we can add duplicates. 
+  // Let's just list all cards and show a badge if owned.
 
   if (isLoading) {
     return (
@@ -87,49 +97,25 @@ export default function CardsCatalogPage() {
             </p>
           </div>
         ) : (
-          <>
-            {/* Available Cards */}
-            {availableCards.length > 0 && (
-              <div>
-                <h2 className="text-xs text-text-muted mb-2 px-1">
-                  Available to Add ({availableCards.length})
-                </h2>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {availableCards.map((card) => (
-                    <CardTile
-                      key={card.id}
-                      card={card}
-                      onClick={() => handleCardClick(card)}
-                    />
-                  ))}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {cards.map((card) => {
+              const isOwned = userCardIds.has(card.id)
+              return (
+                <div key={card.id} className="relative">
+                  <CardTile
+                    card={card}
+                    onClick={() => handleCardClick(card)}
+                    selected={false}
+                  />
+                  {isOwned && (
+                    <span className="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 border border-green-900/50 bg-green-950/20 text-green-400 pointer-events-none">
+                      OWNED
+                    </span>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Already Owned */}
-            {ownedCards.length > 0 && (
-              <div>
-                <h2 className="text-xs text-text-muted mb-2 px-1">
-                  Already in My Cards ({ownedCards.length})
-                </h2>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {ownedCards.map((card) => (
-                    <div key={card.id} className="panel opacity-50">
-                      <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-0.5">
-                        {card.issuer}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm">{card.name}</p>
-                        <span className="text-[9px] px-1.5 py-0.5 border border-green-900/50 bg-green-950/20 text-green-400">
-                          ADDED
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+              )
+            })}
+          </div>
         )}
 
         {/* Add Card Modal */}

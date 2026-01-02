@@ -111,7 +111,9 @@ export default function MyCardsPage() {
                   <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-0.5">
                     {uc.card.issuer}
                   </p>
-                  <p className="text-sm font-medium">{uc.card.name}</p>
+                  <p className="text-sm font-medium">
+                    {uc.nickname ? `${uc.nickname} (${uc.card.name})` : uc.card.name}
+                  </p>
                   <p className="text-[10px] text-text-faint mt-1">
                     Opened {new Date(uc.card_open_date).toLocaleDateString()}
                   </p>
@@ -128,7 +130,9 @@ export default function MyCardsPage() {
                       <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-0.5">
                         {selectedCard.card.issuer}
                       </p>
-                      <h2 className="text-lg font-medium">{selectedCard.card.name}</h2>
+                      <h2 className="text-lg font-medium">
+                        {selectedCard.nickname ? `${selectedCard.nickname} (${selectedCard.card.name})` : selectedCard.card.name}
+                      </h2>
                       <p className="text-xs text-text-muted mt-1">
                         Opened {new Date(selectedCard.card_open_date).toLocaleDateString()}
                       </p>

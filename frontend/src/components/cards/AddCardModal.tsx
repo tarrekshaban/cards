@@ -4,12 +4,13 @@ import type { CardWithBenefits } from '../../types/cards'
 interface AddCardModalProps {
   card: CardWithBenefits
   onClose: () => void
-  onAdd: (cardId: string, cardOpenDate: string) => Promise<void>
+  onAdd: (cardId: string, cardOpenDate: string, nickname?: string) => Promise<void>
   isLoading?: boolean
 }
 
 export default function AddCardModal({ card, onClose, onAdd, isLoading = false }: AddCardModalProps) {
   const [cardOpenDate, setCardOpenDate] = useState('')
+  const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +23,7 @@ export default function AddCardModal({ card, onClose, onAdd, isLoading = false }
     }
 
     try {
-      await onAdd(card.id, cardOpenDate)
+      await onAdd(card.id, cardOpenDate, nickname.trim() || undefined)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add card')
@@ -52,6 +53,22 @@ export default function AddCardModal({ card, onClose, onAdd, isLoading = false }
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-[9px] uppercase tracking-[0.2em] text-text-muted mb-1">
+              Card Nickname (Optional)
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="e.g. Business Card"
+              className="input"
+            />
+            <p className="text-[10px] text-text-faint mt-1">
+              Helpful if you have multiple cards of the same type.
+            </p>
+          </div>
+
           <div>
             <label className="block text-[9px] uppercase tracking-[0.2em] text-text-muted mb-1">
               Card Open Date

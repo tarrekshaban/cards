@@ -40,6 +40,7 @@ export interface UserCard {
   user_id: string
   card_id: string
   card_open_date: string
+  nickname?: string
   card: Card
   created_at?: string
   updated_at?: string
@@ -117,6 +118,7 @@ export interface UpdateBenefitRequest {
 export interface AddUserCardRequest {
   card_id: string
   card_open_date: string
+  nickname?: string
 }
 
 export interface AnnualSummary {

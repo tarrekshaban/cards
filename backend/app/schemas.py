@@ -137,6 +137,7 @@ class UserCardCreate(BaseModel):
     """Request to add a card to user's profile."""
     card_id: str
     card_open_date: date
+    nickname: str | None = None
 
 
 class UserCard(BaseModel):
@@ -145,6 +146,7 @@ class UserCard(BaseModel):
     user_id: str
     card_id: str
     card_open_date: date
+    nickname: str | None = None
     card: Card
     created_at: datetime | None = None
     updated_at: datetime | None = None

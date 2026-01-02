@@ -109,7 +109,7 @@ export default function BenefitItem({
           </div>
           {showCard && (
             <p className="text-[10px] text-text-faint mt-1">
-              {user_card.card.name}
+              {user_card.nickname ? `${user_card.nickname} (${user_card.card.name})` : user_card.card.name}
               {resets_at && ` · Resets ${formatResetDate(resets_at)}`}
             </p>
           )}

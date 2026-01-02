@@ -63,6 +63,7 @@ def _parse_user_card(row: dict, card: Card) -> UserCard:
         user_id=row["user_id"],
         card_id=row["card_id"],
         card_open_date=date.fromisoformat(row["card_open_date"]) if isinstance(row["card_open_date"], str) else row["card_open_date"],
+        nickname=row.get("nickname"),
         card=card,
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
@@ -272,16 +273,12 @@ async def add_user_card(
     if not card_result.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
     
-    # Check if user already has this card
-    existing = supabase.table("user_cards").select("id").eq("user_id", current_user.id).eq("card_id", request.card_id).execute()
-    if existing.data:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Card already added to profile")
-    
     # Add card
     result = supabase.table("user_cards").insert({
         "user_id": current_user.id,
         "card_id": request.card_id,
         "card_open_date": request.card_open_date.isoformat(),
+        "nickname": request.nickname,
     }).execute()
     
     card = _parse_card(card_result.data[0])
