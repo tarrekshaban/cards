@@ -55,12 +55,6 @@ export default function CardsCatalogPage() {
   // Allow adding multiple cards: don't filter out owned cards from the main list
   // But we might want to indicate which ones are already owned.
   // For now, let's just show all cards in one list to simplify "adding another one"
-  const sortedCards = [...cards].sort((a, b) => {
-    const aOwned = userCardIds.has(a.id)
-    const bOwned = userCardIds.has(b.id)
-    if (aOwned === bOwned) return 0
-    return aOwned ? 1 : -1 // Move owned to bottom? Or keep alphabetical?
-  })
   
   // Actually, keeping the split is confusing if we can add duplicates. 
   // Let's just list all cards and show a badge if owned.

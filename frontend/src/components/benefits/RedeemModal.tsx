@@ -25,9 +25,6 @@ export default function RedeemModal({
     setAmount(Math.min(Math.max(0, value), amount_remaining))
   }
 
-  const handlePreset = (percentage: number) => {
-    setAmount(Math.round(amount_remaining * percentage * 100) / 100)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
