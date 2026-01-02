@@ -65,27 +65,30 @@ def _parse_user_card(row: dict, card: Card) -> UserCard:
     )
 
 
-def _calculate_current_period(schedule: BenefitSchedule, card_open_date: date) -> tuple[int, int | None, int | None]:
-    """Calculate the current period (year, month, quarter) for a benefit schedule."""
+def _calculate_current_period(schedule: BenefitSchedule, card_open_date: date) -> tuple[int, int | None, int | None, int | None]:
+    """Calculate the current period (year, month, quarter, half) for a benefit schedule."""
     today = date.today()
     
     if schedule == BenefitSchedule.calendar_year:
-        return (today.year, None, None)
+        return (today.year, None, None, None)
     elif schedule == BenefitSchedule.card_year:
         # Card year is based on anniversary
         years_since_open = today.year - card_open_date.year
         if (today.month, today.day) < (card_open_date.month, card_open_date.day):
             years_since_open -= 1
-        return (years_since_open, None, None)
+        return (years_since_open, None, None, None)
     elif schedule == BenefitSchedule.monthly:
-        return (today.year, today.month, None)
+        return (today.year, today.month, None, None)
     elif schedule == BenefitSchedule.quarterly:
         quarter = (today.month - 1) // 3 + 1
-        return (today.year, None, quarter)
+        return (today.year, None, quarter, None)
+    elif schedule == BenefitSchedule.biannual:
+        half = 1 if today.month <= 6 else 2
+        return (today.year, None, None, half)
     elif schedule == BenefitSchedule.one_time:
-        return (0, None, None)  # Special case: one-time has no period
+        return (0, None, None, None)  # Special case: one-time has no period
     
-    return (today.year, None, None)
+    return (today.year, None, None, None)
 
 
 def _calculate_reset_date(schedule: BenefitSchedule, card_open_date: date) -> date | None:
@@ -108,6 +111,10 @@ def _calculate_reset_date(schedule: BenefitSchedule, card_open_date: date) -> da
         if quarter == 4:
             return date(today.year + 1, 1, 1)
         return date(today.year, quarter * 3 + 1, 1)
+    elif schedule == BenefitSchedule.biannual:
+        if today.month <= 6:
+            return date(today.year, 7, 1)
+        return date(today.year + 1, 1, 1)
     elif schedule == BenefitSchedule.one_time:
         return None  # One-time benefits never reset
     
@@ -120,6 +127,8 @@ def _get_total_count_for_year(schedule: BenefitSchedule) -> int:
         return 12
     elif schedule == BenefitSchedule.quarterly:
         return 4
+    elif schedule == BenefitSchedule.biannual:
+        return 2
     elif schedule in (BenefitSchedule.calendar_year, BenefitSchedule.card_year):
         return 1
     elif schedule == BenefitSchedule.one_time:
@@ -228,7 +237,10 @@ async def list_user_cards(
                         elif period[2] is not None and r.get("period_quarter") == period[2]:
                             is_redeemed = True
                             break
-                        elif period[1] is None and period[2] is None:
+                        elif period[3] is not None and r.get("period_half") == period[3]:
+                            is_redeemed = True
+                            break
+                        elif period[1] is None and period[2] is None and period[3] is None:
                             is_redeemed = True
                             break
             
@@ -335,7 +347,10 @@ async def list_available_benefits(
                         elif period[2] is not None and r.get("period_quarter") == period[2]:
                             is_redeemed = True
                             break
-                        elif period[1] is None and period[2] is None:
+                        elif period[3] is not None and r.get("period_half") == period[3]:
+                            is_redeemed = True
+                            break
+                        elif period[1] is None and period[2] is None and period[3] is None:
                             is_redeemed = True
                             break
             
@@ -453,6 +468,8 @@ async def redeem_benefit(
         existing_query = existing_query.eq("period_month", period[1])
     if period[2] is not None:
         existing_query = existing_query.eq("period_quarter", period[2])
+    if period[3] is not None:
+        existing_query = existing_query.eq("period_half", period[3])
     
     existing = existing_query.execute()
     if existing.data:
@@ -465,6 +482,7 @@ async def redeem_benefit(
         "period_year": period[0],
         "period_month": period[1],
         "period_quarter": period[2],
+        "period_half": period[3],
     }).execute()
     
     row = result.data[0]
@@ -476,6 +494,7 @@ async def redeem_benefit(
         period_year=row["period_year"],
         period_month=row.get("period_month"),
         period_quarter=row.get("period_quarter"),
+        period_half=row.get("period_half"),
     )
 
 
@@ -510,5 +529,7 @@ async def unredeem_benefit(
         delete_query = delete_query.eq("period_month", period[1])
     if period[2] is not None:
         delete_query = delete_query.eq("period_quarter", period[2])
+    if period[3] is not None:
+        delete_query = delete_query.eq("period_half", period[3])
     
     delete_query.execute()

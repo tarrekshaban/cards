@@ -11,6 +11,7 @@ interface BenefitFormProps {
 const scheduleOptions: { value: BenefitSchedule; label: string }[] = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
+  { value: 'biannual', label: 'Biannual (every 6 months)' },
   { value: 'calendar_year', label: 'Calendar Year (resets Jan 1)' },
   { value: 'card_year', label: 'Card Year (resets on anniversary)' },
   { value: 'one_time', label: 'One-time (e.g., signup bonus)' },

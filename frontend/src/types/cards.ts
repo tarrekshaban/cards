@@ -7,6 +7,7 @@ export type BenefitSchedule =
   | 'card_year'
   | 'monthly'
   | 'quarterly'
+  | 'biannual'
   | 'one_time'
 
 export interface Card {
@@ -62,6 +63,7 @@ export interface BenefitRedemption {
   period_year: number
   period_month?: number
   period_quarter?: number
+  period_half?: number
 }
 
 export interface BenefitSummary {

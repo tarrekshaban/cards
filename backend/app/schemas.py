@@ -64,6 +64,7 @@ class BenefitSchedule(str, Enum):
     card_year = "card_year"
     monthly = "monthly"
     quarterly = "quarterly"
+    biannual = "biannual"
     one_time = "one_time"
 
 
@@ -162,6 +163,7 @@ class BenefitRedemption(BaseModel):
     period_year: int
     period_month: int | None = None
     period_quarter: int | None = None
+    period_half: int | None = None
 
 
 # Available Benefit (for dashboard)
