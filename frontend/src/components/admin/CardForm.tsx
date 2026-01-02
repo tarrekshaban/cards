@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { Card, CreateCardRequest, UpdateCardRequest } from '../../types/cards'
 
+const ISSUERS = ['Chase', 'American Express', 'CapitalOne'] as const
+
 interface CardFormProps {
   card?: Card
   onSubmit: (data: CreateCardRequest | UpdateCardRequest) => Promise<void>
@@ -10,7 +12,7 @@ interface CardFormProps {
 
 export default function CardForm({ card, onSubmit, onCancel, isLoading = false }: CardFormProps) {
   const [name, setName] = useState(card?.name ?? '')
-  const [issuer, setIssuer] = useState(card?.issuer ?? '')
+  const [issuer, setIssuer] = useState(card?.issuer ?? ISSUERS[0])
   const [imageUrl, setImageUrl] = useState(card?.image_url ?? '')
   const [error, setError] = useState('')
 
@@ -55,13 +57,17 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
         <label className="block text-[9px] uppercase tracking-[0.2em] text-text-muted mb-1">
           Issuer
         </label>
-        <input
-          type="text"
+        <select
           value={issuer}
           onChange={(e) => setIssuer(e.target.value)}
-          placeholder="Chase"
           className="input"
-        />
+        >
+          {ISSUERS.map((iss) => (
+            <option key={iss} value={iss}>
+              {iss}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

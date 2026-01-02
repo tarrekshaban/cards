@@ -37,6 +37,14 @@
     @apply w-full px-3 py-1.5 bg-surface-muted border border-border rounded-subtle text-text placeholder:text-text-faint focus:outline-none focus:border-text-muted transition-colors text-sm;
   }
 
+  select.input {
+    @apply cursor-pointer pr-10;
+  }
+
+  select.input option {
+    @apply bg-surface-raised text-text py-2;
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center px-4 py-1.5 rounded-subtle bg-primary text-surface hover:bg-primary-hover transition-colors font-medium text-sm;
   }
