@@ -14,6 +14,7 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
   const [name, setName] = useState(card?.name ?? '')
   const [issuer, setIssuer] = useState(card?.issuer ?? ISSUERS[0])
   const [imageUrl, setImageUrl] = useState(card?.image_url ?? '')
+  const [annualFee, setAnnualFee] = useState(card?.annual_fee?.toString() ?? '0')
   const [error, setError] = useState('')
 
   const isEditing = !!card
@@ -27,11 +28,18 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
       return
     }
 
+    const feeValue = parseFloat(annualFee) || 0
+    if (feeValue < 0) {
+      setError('Annual fee cannot be negative')
+      return
+    }
+
     try {
       await onSubmit({
         name: name.trim(),
         issuer: issuer.trim(),
         image_url: imageUrl.trim() || undefined,
+        annual_fee: feeValue,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save card')
@@ -81,6 +89,24 @@ export default function CardForm({ card, onSubmit, onCancel, isLoading = false }
           placeholder="https://..."
           className="input"
         />
+      </div>
+
+      <div>
+        <label className="block text-[9px] uppercase tracking-[0.2em] text-text-muted mb-1">
+          Annual Fee
+        </label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={annualFee}
+            onChange={(e) => setAnnualFee(e.target.value)}
+            placeholder="0"
+            className="input pl-7"
+          />
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-400">{error}</p>}

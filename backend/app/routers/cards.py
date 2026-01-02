@@ -21,6 +21,9 @@ from ..schemas import (
     BenefitRedemption,
     BenefitSummary,
     CardSummary,
+    AnnualSummary,
+    BenefitPreference,
+    BenefitPreferenceUpdate,
 )
 
 router = APIRouter()
@@ -33,6 +36,7 @@ def _parse_card(row: dict) -> Card:
         name=row["name"],
         issuer=row["issuer"],
         image_url=row.get("image_url"),
+        annual_fee=Decimal(str(row.get("annual_fee", 0))),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
     )
@@ -307,6 +311,7 @@ async def remove_user_card(
 async def list_available_benefits(
     current_user: Annotated[User, Depends(get_current_user)],
     supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+    show_hidden: bool = Query(default=False, description="Include hidden benefits"),
 ):
     """List all unredeemed benefits across all user's cards (for dashboard)."""
     # Get user's cards
@@ -329,9 +334,24 @@ async def list_available_benefits(
                 redemptions_by_benefit[bid] = []
             redemptions_by_benefit[bid].append(r)
         
+        # Get user preferences for this user_card
+        prefs_result = supabase.table("user_benefit_preferences").select("*").eq("user_card_id", user_card.id).execute()
+        prefs_by_benefit: dict[str, dict] = {}
+        for p in prefs_result.data:
+            prefs_by_benefit[p["benefit_id"]] = p
+        
         for b_row in benefits_result.data:
             benefit = _parse_benefit(b_row)
             period = _calculate_current_period(benefit.schedule, user_card.card_open_date)
+            
+            # Get preferences for this benefit
+            pref = prefs_by_benefit.get(benefit.id, {})
+            auto_redeem = pref.get("auto_redeem", False)
+            hidden = pref.get("hidden", False)
+            
+            # Skip hidden benefits unless show_hidden is True
+            if hidden and not show_hidden:
+                continue
             
             # Check if redeemed
             is_redeemed = False
@@ -354,12 +374,18 @@ async def list_available_benefits(
                             is_redeemed = True
                             break
             
+            # Treat auto-redeem benefits as redeemed (don't show in unredeemed list)
+            if auto_redeem:
+                is_redeemed = True
+            
             if not is_redeemed:
                 available.append(AvailableBenefit(
                     benefit=benefit,
                     user_card=user_card,
                     is_redeemed=False,
                     resets_at=_calculate_reset_date(benefit.schedule, user_card.card_open_date),
+                    auto_redeem=auto_redeem,
+                    hidden=hidden,
                 ))
     
     # Sort by reset date (soonest first), then by value (highest first)
@@ -430,6 +456,82 @@ async def get_card_summary(
         benefits=benefit_summaries,
         total_redeemed=total_redeemed,
         total_available=total_available,
+    )
+
+
+@router.get("/user/summary/annual", response_model=AnnualSummary)
+async def get_annual_summary(
+    current_user: Annotated[User, Depends(get_current_user)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+    year: int = Query(default_factory=lambda: date.today().year),
+):
+    """Get annual summary across all user's cards (calendar year focus)."""
+    # Get all user's cards
+    user_cards_result = supabase.table("user_cards").select("*, cards(*)").eq("user_id", current_user.id).execute()
+    
+    total_redeemed = Decimal("0")
+    total_available = Decimal("0")
+    redeemed_count = 0
+    total_count = 0
+    
+    for uc_row in user_cards_result.data:
+        card = _parse_card(uc_row["cards"])
+        user_card = _parse_user_card(uc_row, card)
+        
+        # Get benefits for this card
+        benefits_result = supabase.table("benefits").select("*").eq("card_id", card.id).execute()
+        
+        # Get redemptions for calendar year
+        redemptions_result = supabase.table("benefit_redemptions").select("*").eq(
+            "user_card_id", user_card.id
+        ).eq("period_year", year).execute()
+        
+        # Get user preferences for this user_card
+        prefs_result = supabase.table("user_benefit_preferences").select("*").eq("user_card_id", user_card.id).execute()
+        prefs_by_benefit: dict[str, dict] = {}
+        for p in prefs_result.data:
+            prefs_by_benefit[p["benefit_id"]] = p
+        
+        # Count redemptions per benefit
+        redemption_counts: dict[str, int] = {}
+        for r in redemptions_result.data:
+            bid = r["benefit_id"]
+            redemption_counts[bid] = redemption_counts.get(bid, 0) + 1
+        
+        for b_row in benefits_result.data:
+            benefit = _parse_benefit(b_row)
+            yearly_count = _get_total_count_for_year(benefit.schedule)
+            benefit_redeemed = redemption_counts.get(benefit.id, 0)
+            
+            # Check if auto-redeem is enabled for this benefit
+            pref = prefs_by_benefit.get(benefit.id, {})
+            auto_redeem = pref.get("auto_redeem", False)
+            hidden = pref.get("hidden", False)
+            
+            # Skip hidden benefits (don't count towards totals)
+            if hidden:
+                continue
+            
+            # If auto-redeem, count all periods as redeemed
+            if auto_redeem:
+                benefit_redeemed = yearly_count
+            
+            # Calculate values
+            benefit_redeemed_value = benefit.value * benefit_redeemed
+            benefit_total_value = benefit.value * yearly_count
+            
+            total_redeemed += benefit_redeemed_value
+            total_available += benefit_total_value
+            redeemed_count += benefit_redeemed
+            total_count += yearly_count
+    
+    return AnnualSummary(
+        year=year,
+        total_redeemed=total_redeemed,
+        total_available=total_available,
+        outstanding=total_available - total_redeemed,
+        redeemed_count=redeemed_count,
+        total_count=total_count,
     )
 
 
@@ -533,3 +635,105 @@ async def unredeem_benefit(
         delete_query = delete_query.eq("period_half", period[3])
     
     delete_query.execute()
+
+
+# ============================================================
+# Benefit Preferences
+# ============================================================
+
+@router.get("/user/cards/{user_card_id}/benefits/{benefit_id}/preferences", response_model=BenefitPreference)
+async def get_benefit_preferences(
+    user_card_id: str,
+    benefit_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """Get user preferences for a specific benefit."""
+    # Verify ownership
+    uc_result = supabase.table("user_cards").select("id").eq("id", user_card_id).eq("user_id", current_user.id).execute()
+    if not uc_result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found in your profile")
+    
+    # Get existing preference or return defaults
+    pref_result = supabase.table("user_benefit_preferences").select("*").eq(
+        "user_card_id", user_card_id
+    ).eq("benefit_id", benefit_id).execute()
+    
+    if pref_result.data:
+        row = pref_result.data[0]
+        return BenefitPreference(
+            id=row["id"],
+            user_card_id=row["user_card_id"],
+            benefit_id=row["benefit_id"],
+            auto_redeem=row.get("auto_redeem", False),
+            hidden=row.get("hidden", False),
+            created_at=row.get("created_at"),
+            updated_at=row.get("updated_at"),
+        )
+    
+    # Return default preference (not persisted yet)
+    return BenefitPreference(
+        id="",
+        user_card_id=user_card_id,
+        benefit_id=benefit_id,
+        auto_redeem=False,
+        hidden=False,
+    )
+
+
+@router.put("/user/cards/{user_card_id}/benefits/{benefit_id}/preferences", response_model=BenefitPreference)
+async def update_benefit_preferences(
+    user_card_id: str,
+    benefit_id: str,
+    request: BenefitPreferenceUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    supabase: Annotated[Client, Depends(get_supabase_admin_client)],
+):
+    """Update user preferences for a specific benefit (auto-redeem, hidden)."""
+    # Verify ownership
+    uc_result = supabase.table("user_cards").select("id, card_id").eq("id", user_card_id).eq("user_id", current_user.id).execute()
+    if not uc_result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found in your profile")
+    
+    # Verify benefit belongs to the card
+    card_id = uc_result.data[0]["card_id"]
+    benefit_result = supabase.table("benefits").select("id").eq("id", benefit_id).eq("card_id", card_id).execute()
+    if not benefit_result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Benefit not found for this card")
+    
+    # Check if preference already exists
+    existing = supabase.table("user_benefit_preferences").select("*").eq(
+        "user_card_id", user_card_id
+    ).eq("benefit_id", benefit_id).execute()
+    
+    # Build update data (only include non-None fields)
+    update_data = {}
+    if request.auto_redeem is not None:
+        update_data["auto_redeem"] = request.auto_redeem
+    if request.hidden is not None:
+        update_data["hidden"] = request.hidden
+    
+    if existing.data:
+        # Update existing preference
+        result = supabase.table("user_benefit_preferences").update(update_data).eq(
+            "id", existing.data[0]["id"]
+        ).execute()
+    else:
+        # Create new preference
+        insert_data = {
+            "user_card_id": user_card_id,
+            "benefit_id": benefit_id,
+            **update_data,
+        }
+        result = supabase.table("user_benefit_preferences").insert(insert_data).execute()
+    
+    row = result.data[0]
+    return BenefitPreference(
+        id=row["id"],
+        user_card_id=row["user_card_id"],
+        benefit_id=row["benefit_id"],
+        auto_redeem=row.get("auto_redeem", False),
+        hidden=row.get("hidden", False),
+        created_at=row.get("created_at"),
+        updated_at=row.get("updated_at"),
+    )

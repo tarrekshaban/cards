@@ -15,6 +15,7 @@ export interface Card {
   name: string
   issuer: string
   image_url?: string
+  annual_fee?: number
   created_at?: string
   updated_at?: string
 }
@@ -49,6 +50,8 @@ export interface AvailableBenefit {
   user_card: UserCard
   is_redeemed: boolean
   resets_at: string | null
+  auto_redeem: boolean
+  hidden: boolean
 }
 
 export interface UserCardWithBenefits extends UserCard {
@@ -87,12 +90,14 @@ export interface CreateCardRequest {
   name: string
   issuer: string
   image_url?: string
+  annual_fee?: number
 }
 
 export interface UpdateCardRequest {
   name?: string
   issuer?: string
   image_url?: string
+  annual_fee?: number
 }
 
 export interface CreateBenefitRequest {
@@ -112,4 +117,28 @@ export interface UpdateBenefitRequest {
 export interface AddUserCardRequest {
   card_id: string
   card_open_date: string
+}
+
+export interface AnnualSummary {
+  year: number
+  total_redeemed: number
+  total_available: number
+  outstanding: number
+  redeemed_count: number
+  total_count: number
+}
+
+export interface BenefitPreference {
+  id: string
+  user_card_id: string
+  benefit_id: string
+  auto_redeem: boolean
+  hidden: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface UpdateBenefitPreferenceRequest {
+  auto_redeem?: boolean
+  hidden?: boolean
 }

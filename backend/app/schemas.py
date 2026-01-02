@@ -74,6 +74,7 @@ class CardBase(BaseModel):
     name: str
     issuer: str
     image_url: str | None = None
+    annual_fee: Decimal = Decimal("0")
 
 
 class CardCreate(CardBase):
@@ -86,6 +87,7 @@ class CardUpdate(BaseModel):
     name: str | None = None
     issuer: str | None = None
     image_url: str | None = None
+    annual_fee: Decimal | None = None
 
 
 class Card(CardBase):
@@ -166,6 +168,24 @@ class BenefitRedemption(BaseModel):
     period_half: int | None = None
 
 
+# User Benefit Preference Schemas
+class BenefitPreferenceUpdate(BaseModel):
+    """Request to update benefit preferences."""
+    auto_redeem: bool | None = None
+    hidden: bool | None = None
+
+
+class BenefitPreference(BaseModel):
+    """Benefit preference record."""
+    id: str
+    user_card_id: str
+    benefit_id: str
+    auto_redeem: bool = False
+    hidden: bool = False
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 # Available Benefit (for dashboard)
 class AvailableBenefit(BaseModel):
     """Benefit with availability status for dashboard."""
@@ -173,6 +193,8 @@ class AvailableBenefit(BaseModel):
     user_card: UserCard
     is_redeemed: bool
     resets_at: date | None = None
+    auto_redeem: bool = False
+    hidden: bool = False
 
 
 # Yearly Summary Schemas
@@ -197,3 +219,13 @@ class CardSummary(BaseModel):
 class UserCardWithBenefits(UserCard):
     """User's card with benefits and redemption status."""
     benefits: list[AvailableBenefit] = []
+
+
+class AnnualSummary(BaseModel):
+    """Annual summary across all user's cards (calendar year focus)."""
+    year: int
+    total_redeemed: Decimal
+    total_available: Decimal
+    outstanding: Decimal  # total_available - total_redeemed
+    redeemed_count: int
+    total_count: int

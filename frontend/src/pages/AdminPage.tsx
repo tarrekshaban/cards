@@ -255,40 +255,42 @@ export default function AdminPage() {
               {selectedCard.benefits.length === 0 ? (
                 <p className="text-text-muted text-sm">No benefits yet.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {selectedCard.benefits.map((benefit) => (
                     <div
                       key={benefit.id}
-                      className="p-3 bg-surface-muted border border-border flex items-center justify-between"
+                      className="p-3 bg-surface-muted border border-border"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">${benefit.value}</span>
-                          <span className="text-sm text-text-muted">{benefit.name}</span>
-                          <span className="text-[9px] px-1 py-0.5 border border-border text-text-faint">
-                            {benefit.schedule}
-                          </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-sm font-medium">${Number(benefit.value)}</span>
+                            <span className="text-sm">{benefit.name}</span>
+                            <span className="text-[9px] px-1 py-0.5 border border-border text-text-faint shrink-0">
+                              {benefit.schedule}
+                            </span>
+                          </div>
+                          {benefit.description && (
+                            <p className="text-xs text-text-faint mt-2">{benefit.description}</p>
+                          )}
                         </div>
-                        {benefit.description && (
-                          <p className="text-xs text-text-faint mt-1">{benefit.description}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedBenefit(benefit)
-                            setView('edit-benefit')
-                          }}
-                          className="text-xs text-text-muted hover:text-text"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBenefit(benefit.id)}
-                          className="text-xs text-red-400 hover:text-red-300"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex gap-3 shrink-0">
+                          <button
+                            onClick={() => {
+                              setSelectedBenefit(benefit)
+                              setView('edit-benefit')
+                            }}
+                            className="text-xs text-text-muted hover:text-text"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBenefit(benefit.id)}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Del
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

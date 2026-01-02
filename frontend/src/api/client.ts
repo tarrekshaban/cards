@@ -218,11 +218,14 @@ import type {
   AvailableBenefit,
   BenefitRedemption,
   CardSummary,
+  AnnualSummary,
   CreateCardRequest,
   UpdateCardRequest,
   CreateBenefitRequest,
   UpdateBenefitRequest,
   AddUserCardRequest,
+  BenefitPreference,
+  UpdateBenefitPreferenceRequest,
 } from '../types/cards'
 
 // Card Catalog API
@@ -256,8 +259,9 @@ export const userCardsApi = {
   },
 
   // Get available (unredeemed) benefits for dashboard
-  async getAvailableBenefits(): Promise<AvailableBenefit[]> {
-    return api.get<AvailableBenefit[]>('/user/benefits/available')
+  async getAvailableBenefits(showHidden?: boolean): Promise<AvailableBenefit[]> {
+    const params = showHidden ? '?show_hidden=true' : ''
+    return api.get<AvailableBenefit[]>(`/user/benefits/available${params}`)
   },
 
   // Get yearly summary for a card
@@ -274,6 +278,26 @@ export const userCardsApi = {
   // Unredeem a benefit
   async unredeemBenefit(userCardId: string, benefitId: string): Promise<void> {
     return api.delete(`/user/cards/${userCardId}/benefits/${benefitId}/redeem`)
+  },
+
+  // Get annual summary (calendar year)
+  async getAnnualSummary(year?: number): Promise<AnnualSummary> {
+    const params = year ? `?year=${year}` : ''
+    return api.get<AnnualSummary>(`/user/summary/annual${params}`)
+  },
+
+  // Get benefit preferences
+  async getBenefitPreferences(userCardId: string, benefitId: string): Promise<BenefitPreference> {
+    return api.get<BenefitPreference>(`/user/cards/${userCardId}/benefits/${benefitId}/preferences`)
+  },
+
+  // Update benefit preferences (auto-redeem, hidden)
+  async updateBenefitPreferences(
+    userCardId: string,
+    benefitId: string,
+    data: UpdateBenefitPreferenceRequest
+  ): Promise<BenefitPreference> {
+    return api.put<BenefitPreference>(`/user/cards/${userCardId}/benefits/${benefitId}/preferences`, data)
   },
 }
 
