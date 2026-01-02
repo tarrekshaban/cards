@@ -29,6 +29,7 @@ def _parse_card(row: dict) -> Card:
         name=row["name"],
         issuer=row["issuer"],
         image_url=row.get("image_url"),
+        annual_fee=Decimal(str(row.get("annual_fee", 0))),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
     )
