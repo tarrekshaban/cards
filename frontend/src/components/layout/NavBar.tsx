@@ -22,10 +22,10 @@ export default function NavBar() {
   }
 
   return (
-    <header className="panel mb-4 relative">
+    <header className="panel mb-4 relative sticky top-0 z-30 rounded-2xl bg-surface/80 backdrop-blur border-border/60 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-between">
         {/* Logo */}
-        <Link to="/dashboard" className="text-lg font-medium hover:text-text">
+        <Link to="/dashboard" className="text-sm tracking-[0.35em] font-medium hover:text-text text-text-muted">
           CARDS
         </Link>
 
@@ -72,16 +72,16 @@ export default function NavBar() {
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <nav className="sm:hidden mt-4 pt-4 border-t border-border flex flex-col gap-1">
+        <nav className="sm:hidden mt-4 pt-4 border-t border-border/60 flex flex-col gap-1">
           {links.map((link) => (
             <Link
               key={link.path}
               to={link.path}
               onClick={handleLinkClick}
-              className={`py-3 px-2 text-base transition-colors ${
+              className={`py-3 px-3 rounded-xl text-base transition-colors ${
                 location.pathname === link.path
-                  ? 'text-text'
-                  : 'text-text-muted hover:text-text'
+                  ? 'text-text bg-surface-muted/60'
+                  : 'text-text-muted hover:text-text hover:bg-surface-muted/40'
               }`}
             >
               {link.label}
@@ -90,7 +90,7 @@ export default function NavBar() {
           <Link
             to="/cards"
             onClick={handleLinkClick}
-            className="btn-secondary text-base mt-2"
+            className="btn-secondary text-base mt-2 rounded-xl"
           >
             Add Card
           </Link>

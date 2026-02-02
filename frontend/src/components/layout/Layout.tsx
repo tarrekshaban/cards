@@ -8,9 +8,11 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   return (
     <div className="page-shell">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto w-full">
         <NavBar />
-        {children}
+        <main className="pb-16 sm:pb-20">
+          {children}
+        </main>
       </div>
     </div>
   )

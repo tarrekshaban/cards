@@ -104,43 +104,50 @@ export default function DashboardPage() {
 
   return (
     <Layout>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Annual Summary */}
         {summary && (
-          <div className="panel">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted mb-3">
-              {summary.year} Annual Summary
-            </p>
-            <div className="flex items-end justify-between gap-4 mb-3">
-              <div>
-                <p className="text-2xl font-medium">
-                  ${Number(summary.total_redeemed).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          <div className="panel relative overflow-hidden rounded-2xl bg-gradient-to-br from-surface-raised via-surface-muted/60 to-surface-raised border-border/70 shadow-[0_14px_40px_rgba(0,0,0,0.35)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_0%_0%,rgba(229,229,229,0.08),transparent_65%)]" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted">
+                  {summary.year} Annual Summary
                 </p>
-                <p className="text-[10px] text-text-faint">redeemed</p>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-text-faint">YTD</span>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-medium text-text-muted">
-                  ${Number(summary.outstanding).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                </p>
-                <p className="text-[10px] text-text-faint">outstanding</p>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-2xl font-medium">
+                    ${Number(summary.total_redeemed).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-[10px] text-text-faint uppercase tracking-[0.25em]">redeemed</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-medium text-text-muted">
+                    ${Number(summary.outstanding).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-[10px] text-text-faint uppercase tracking-[0.25em]">outstanding</p>
+                </div>
               </div>
-            </div>
-            {/* Progress Bar */}
-            <div className="h-2 bg-surface-muted border border-border overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{
-                  width: `${summary.total_available > 0 ? (Number(summary.total_redeemed) / Number(summary.total_available)) * 100 : 0}%`,
-                }}
-              />
-            </div>
-            <div className="flex justify-between mt-1">
-              <p className="text-[9px] text-text-faint">
-                {summary.redeemed_count} of {summary.total_count} benefits
-              </p>
-              <p className="text-[9px] text-text-faint">
-                ${Number(summary.total_annual_fees).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} annual fees
-              </p>
+              <div className="mt-4">
+                <div className="h-2 bg-surface-muted/70 border border-border/60 overflow-hidden rounded-full">
+                  <div
+                    className="h-full bg-primary/80 transition-all"
+                    style={{
+                      width: `${summary.total_available > 0 ? (Number(summary.total_redeemed) / Number(summary.total_available)) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2">
+                  <p className="text-[9px] text-text-faint uppercase tracking-[0.2em]">
+                    {summary.redeemed_count} of {summary.total_count} benefits
+                  </p>
+                  <p className="text-[9px] text-text-faint uppercase tracking-[0.2em]">
+                    ${Number(summary.total_annual_fees).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} annual fees
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -170,7 +177,8 @@ export default function DashboardPage() {
               {sortedGroups.map((group) => (
                 <div key={group.userCard.id} className="space-y-2">
                   <div className="flex items-baseline gap-2 px-1">
-                    <h2 className="text-sm font-medium text-text-muted">
+                    <span className="h-2 w-2 rounded-full bg-primary/60" />
+                    <h2 className="text-sm font-medium text-text">
                       {group.userCard.card.name}
                     </h2>
                     {group.userCard.nickname && (
@@ -178,7 +186,7 @@ export default function DashboardPage() {
                         {group.userCard.nickname}
                       </span>
                     )}
-                    <div className="ml-auto text-xs font-mono text-text-muted">
+                    <div className="ml-auto text-xs font-mono text-text-muted px-2 py-1 border border-border/60 rounded-full bg-surface-muted/40">
                       ${group.benefits.reduce((sum, b) => {
                         // Use amount_remaining if present (partial/full redemption logic handled by backend)
                         // If auto-redeem is on, backend sets amount_remaining to 0, so this works.
@@ -207,10 +215,10 @@ export default function DashboardPage() {
             <div className="text-center">
               <button
                 onClick={() => setShowHidden(!showHidden)}
-                className={`text-[10px] px-3 py-1 transition-colors ${
+                className={`text-[10px] px-4 py-2 rounded-full border transition-colors uppercase tracking-[0.2em] ${
                   showHidden
-                    ? 'bg-surface-raised border border-text-muted text-text'
-                    : 'text-text-muted hover:text-text'
+                    ? 'bg-surface-raised border-text-muted text-text'
+                    : 'text-text-muted hover:text-text border-border/60 hover:border-text-muted'
                 }`}
               >
                 {showHidden ? 'Hide hidden' : 'Show hidden'}

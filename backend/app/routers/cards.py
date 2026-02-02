@@ -1,6 +1,7 @@
 """Card catalog and user card management endpoints."""
 
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -29,6 +30,11 @@ from ..schemas import (
 )
 
 router = APIRouter()
+
+
+def _today_eastern() -> date:
+    """Return today's date in Eastern Time."""
+    return datetime.now(ZoneInfo("America/New_York")).date()
 
 
 def _parse_card(row: dict) -> Card:
@@ -74,7 +80,7 @@ def _parse_user_card(row: dict, card: Card) -> UserCard:
 
 def _calculate_current_period(schedule: BenefitSchedule, card_open_date: date) -> tuple[int, int | None, int | None, int | None]:
     """Calculate the current period (year, month, quarter, half) for a benefit schedule."""
-    today = date.today()
+    today = _today_eastern()
     
     if schedule == BenefitSchedule.calendar_year:
         return (today.year, None, None, None)
@@ -100,7 +106,7 @@ def _calculate_current_period(schedule: BenefitSchedule, card_open_date: date) -
 
 def _calculate_reset_date(schedule: BenefitSchedule, card_open_date: date) -> date | None:
     """Calculate when a benefit resets."""
-    today = date.today()
+    today = _today_eastern()
     
     if schedule == BenefitSchedule.calendar_year:
         return date(today.year + 1, 1, 1)
@@ -486,7 +492,7 @@ async def get_card_summary(
     user_card_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     supabase: Annotated[Client, Depends(get_supabase_admin_client)],
-    year: int = Query(default_factory=lambda: date.today().year),
+    year: int = Query(default_factory=lambda: _today_eastern().year),
 ):
     """Get yearly summary stats for a user's card."""
     # Get user card with card details
@@ -546,7 +552,7 @@ async def get_card_summary(
 async def get_annual_summary(
     current_user: Annotated[User, Depends(get_current_user)],
     supabase: Annotated[Client, Depends(get_supabase_admin_client)],
-    year: int = Query(default_factory=lambda: date.today().year),
+    year: int = Query(default_factory=lambda: _today_eastern().year),
 ):
     """Get annual summary across all user's cards (calendar year focus)."""
     # Get all user's cards

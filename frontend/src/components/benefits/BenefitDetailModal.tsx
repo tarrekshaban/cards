@@ -24,9 +24,14 @@ function formatSchedule(schedule: string): string {
   }
 }
 
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'N/A'
-  const date = new Date(dateStr)
+  const date = parseLocalDate(dateStr)
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
@@ -37,8 +42,8 @@ export default function BenefitDetailModal({ benefit, onClose }: BenefitDetailMo
   const remaining = Number(amount_remaining)
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-      <div className="panel max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="panel max-w-md w-full max-h-[90vh] overflow-y-auto rounded-2xl bg-gradient-to-br from-surface-raised via-surface-muted/60 to-surface-raised border-border/70 shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -56,7 +61,7 @@ export default function BenefitDetailModal({ benefit, onClose }: BenefitDetailMo
         </div>
 
         {/* Card Info */}
-        <div className="p-3 bg-surface-muted border border-border mb-4">
+        <div className="p-3 bg-surface-muted/70 border border-border/70 rounded-xl mb-4">
           <p className="text-[9px] uppercase tracking-[0.2em] text-text-faint mb-0.5">
             {user_card.card.issuer}
           </p>

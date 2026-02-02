@@ -11,9 +11,14 @@ interface BenefitItemProps {
   showCard?: boolean
 }
 
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 function formatResetDate(dateStr: string | null): string {
   if (!dateStr) return 'Never'
-  const date = new Date(dateStr)
+  const date = parseLocalDate(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
@@ -64,6 +69,8 @@ export default function BenefitItem({
   
   // Check if this is a partial redemption (some redeemed, some remaining)
   const isPartiallyRedeemed = amount_redeemed > 0 && amount_remaining > 0
+  const resetLabel = resets_at ? `Resets ${formatResetDate(resets_at)}` : null
+  const scheduleLabel = formatSchedule(b.schedule)
 
   const handleToggleAutoRedeem = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -80,7 +87,7 @@ export default function BenefitItem({
     <>
       <button
         onClick={handleToggleAutoRedeem}
-        className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+        className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
           auto_redeem 
             ? 'bg-primary/10 text-primary hover:bg-primary/20' 
             : 'text-text-faint hover:text-text-muted hover:bg-surface-muted'
@@ -91,7 +98,7 @@ export default function BenefitItem({
       </button>
       <button
         onClick={handleToggleHidden}
-        className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+        className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
           hidden 
             ? 'bg-surface-muted text-text-muted hover:bg-surface-muted/80' 
             : 'text-text-faint hover:text-text-muted hover:bg-surface-muted'
@@ -104,11 +111,12 @@ export default function BenefitItem({
   )
 
   return (
-    <div className={`panel group transition-opacity duration-200 relative ${hidden ? 'opacity-50 hover:opacity-100' : ''}`}>
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+    <div className={`panel group relative overflow-hidden rounded-2xl border-border/70 bg-gradient-to-br from-surface-raised via-surface-muted/60 to-surface-raised shadow-[0_14px_40px_rgba(0,0,0,0.35)] transition-transform duration-200 ease-out active:scale-[0.99] ${hidden ? 'opacity-60 hover:opacity-100' : ''}`}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_0%_0%,rgba(229,229,229,0.08),transparent_65%)]" />
+      <div className="relative flex flex-col md:flex-row md:items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Main Info Row */}
-          <div className="flex flex-col md:flex-row md:flex-wrap md:items-baseline gap-x-3 gap-y-1">
+          <div className="flex flex-col gap-2">
             {/* Value & Partial Indicator */}
             <div className="flex items-center gap-2">
               <div className="flex items-baseline gap-1.5">
@@ -121,45 +129,39 @@ export default function BenefitItem({
                   </span>
                 )}
               </div>
-              {/* Schedule Tag - Mobile Only (next to value) */}
-              <span className="md:hidden text-[9px] px-1.5 py-0.5 border border-border text-text-faint uppercase tracking-wider rounded-sm shrink-0">
-                {formatSchedule(b.schedule)}
-              </span>
             </div>
             
             {/* Name & Metadata */}
-            <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-0">
-              <button 
-                onClick={() => setShowDetail(true)}
-                className="text-sm text-text-muted hover:text-text hover:underline transition-colors text-left"
-              >
-                {b.name}
-              </button>
-              {/* Schedule Tag - Desktop Only (in metadata row) */}
-              <span className="hidden md:inline-flex text-[9px] px-1.5 py-0.5 border border-border text-text-faint uppercase tracking-wider rounded-sm shrink-0">
-                {formatSchedule(b.schedule)}
-              </span>
-            </div>
+            <button 
+              onClick={() => setShowDetail(true)}
+              className="text-sm text-text-muted hover:text-text hover:underline transition-colors text-left"
+            >
+              {b.name}
+            </button>
           </div>
           
           {/* Metadata Row */}
-          <div className="mt-1.5 flex items-center gap-2 text-[10px] text-text-faint">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-text-faint">
             {showCard && (
               <span className="font-medium text-text-muted/70">
                 {user_card.nickname ? `${user_card.nickname} (${user_card.card.name})` : user_card.card.name}
               </span>
             )}
-            {showCard && resets_at && <span>·</span>}
-            {resets_at && (
-              <span>Resets {formatResetDate(resets_at)}</span>
+            <span className="text-[9px] uppercase tracking-[0.2em] px-2 py-1 border border-border/60 rounded-full bg-surface-muted/40">
+              {scheduleLabel}
+            </span>
+            {resetLabel && (
+              <span className="text-[9px] uppercase tracking-[0.2em] px-2 py-1 border border-border/60 rounded-full bg-surface-muted/40">
+                {resetLabel}
+              </span>
             )}
           </div>
 
           {/* Progress Bar for Partial Redemption */}
           {isPartiallyRedeemed && (
-            <div className="mt-3 md:mt-2 h-1 w-full md:max-w-[200px] bg-surface-muted border border-border overflow-hidden rounded-full">
+            <div className="mt-3 md:mt-2 h-1.5 w-full md:max-w-[240px] bg-surface-muted/70 border border-border/60 overflow-hidden rounded-full">
               <div 
-                className="h-full bg-primary/40" 
+                className="h-full bg-primary/50" 
                 style={{ width: `${(amount_redeemed / b.value) * 100}%` }}
               />
             </div>
@@ -185,14 +187,14 @@ export default function BenefitItem({
         </div>
 
         {/* Mobile Actions (Full Width) */}
-        <div className="md:hidden mt-2 pt-2 border-t border-border/50 flex items-center gap-2">
+        <div className="md:hidden mt-3 pt-3 border-t border-border/50 flex items-center gap-2">
           {/* Settings Icons */}
           {onUpdatePreferences && <SettingsIcons />}
           {/* Redeem Button */}
           <button
             onClick={is_redeemed ? onUnredeem : onRedeem}
             disabled={isLoading}
-            className={`flex-1 text-xs font-medium py-2 transition-colors border ${
+            className={`flex-1 text-xs font-medium py-2.5 transition-colors border rounded-full ${
               is_redeemed
                 ? 'border-green-900/30 bg-green-950/10 text-green-500'
                 : 'bg-surface-raised border-border text-text hover:bg-surface-muted'
